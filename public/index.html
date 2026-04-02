@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Gestión de Biblioteca</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>📚 Sistema de Gestión de Biblioteca</h1>
+    
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="autores">Autores</button>
+      <button class="tab-btn" data-tab="libros">Libros</button>
+      <button class="tab-btn" data-tab="ediciones">Ediciones</button>
+      <button class="tab-btn" data-tab="copias">Copias</button>
+      <button class="tab-btn" data-tab="usuarios">Usuarios</button>
+      <button class="tab-btn" data-tab="prestamos">Préstamos</button>
+    </div>
+
+    <!-- TAB: AUTORES -->
+    <div id="autores" class="tab-content active">
+      <h2>Gestión de Autores</h2>
+      <form id="formAutor">
+        <input type="hidden" id="autorId">
+        <input type="text" id="autorNombre" placeholder="Nombre del autor" required>
+        <button type="submit">Guardar Autor</button>
+        <button type="button" onclick="limpiarFormAutor()">Limpiar</button>
+      </form>
+      <table id="tablAutores">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- TAB: LIBROS -->
+    <div id="libros" class="tab-content">
+      <h2>Gestión de Libros</h2>
+      <form id="formLibro">
+        <input type="hidden" id="libroId">
+        <input type="text" id="libroTitulo" placeholder="Título del libro" required>
+        <input type="text" id="libroAutores" placeholder="IDs de autores (separados por comas)">
+        <button type="submit">Guardar Libro</button>
+        <button type="button" onclick="limpiarFormLibro()">Limpiar</button>
+      </form>
+      <table id="tablLibros">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Título</th>
+            <th>Autores</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- TAB: EDICIONES -->
+    <div id="ediciones" class="tab-content">
+      <h2>Gestión de Ediciones</h2>
+      <form id="formEdicion">
+        <input type="hidden" id="edicionId">
+        <input type="text" id="edicionISBN" placeholder="ISBN" required>
+        <input type="number" id="edicionAño" placeholder="Año" required>
+        <input type="text" id="edicionIdioma" placeholder="Idioma" required>
+        <input type="text" id="edicionLibroId" placeholder="ID del Libro" required>
+        <button type="submit">Guardar Edición</button>
+        <button type="button" onclick="limpiarFormEdicion()">Limpiar</button>
+      </form>
+      <table id="tablEdiciones">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>ISBN</th>
+            <th>Año</th>
+            <th>Idioma</th>
+            <th>Libro ID</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- TAB: COPIAS -->
+    <div id="copias" class="tab-content">
+      <h2>Gestión de Copias</h2>
+      <form id="formCopia">
+        <input type="hidden" id="copiaId">
+        <input type="number" id="copiaNumero" placeholder="Número de copia" required>
+        <input type="text" id="copiaEdicionId" placeholder="ID de la Edición" required>
+        <button type="submit">Guardar Copia</button>
+        <button type="button" onclick="limpiarFormCopia()">Limpiar</button>
+      </form>
+      <table id="tablCopias">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Número</th>
+            <th>Edición ID</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- TAB: USUARIOS -->
+    <div id="usuarios" class="tab-content">
+      <h2>Gestión de Usuarios</h2>
+      <form id="formUsuario">
+        <input type="hidden" id="usuarioId">
+        <input type="text" id="usuarioRUT" placeholder="RUT (ej: 12.345.678-9)" required>
+        <input type="text" id="usuarioNombre" placeholder="Nombre del usuario" required>
+        <button type="submit">Guardar Usuario</button>
+        <button type="button" onclick="limpiarFormUsuario()">Limpiar</button>
+      </form>
+      <table id="tablUsuarios">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>RUT</th>
+            <th>Nombre</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- TAB: PRÉSTAMOS -->
+    <div id="prestamos" class="tab-content">
+      <h2>Gestión de Préstamos</h2>
+      <form id="formPrestamo">
+        <input type="hidden" id="prestamoId">
+        <input type="text" id="prestamoCopiaId" placeholder="ID de la Copia" required>
+        <input type="text" id="prestamoUsuarioId" placeholder="ID del Usuario" required>
+        <input type="datetime-local" id="prestamoFechaPrestamo" required>
+        <input type="datetime-local" id="prestamoFechaDevolucion" placeholder="Fecha devolución (opcional)">
+        <button type="submit">Guardar Préstamo</button>
+        <button type="button" onclick="limpiarFormPrestamo()">Limpiar</button>
+      </form>
+      <table id="tablPrestamos">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Copia ID</th>
+            <th>Usuario ID</th>
+            <th>Fecha Préstamo</th>
+            <th>Fecha Devolución</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

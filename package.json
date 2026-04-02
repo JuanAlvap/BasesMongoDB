@@ -1,0 +1,19 @@
+{
+  "name": "biblioteca-crud",
+  "version": "1.0.0",
+  "description": "Sistema de gestión de biblioteca con MongoDB",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["mongodb", "crud", "biblioteca"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongodb": "^5.9.0",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5"
+  }
+}
