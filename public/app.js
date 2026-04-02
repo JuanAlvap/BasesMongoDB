@@ -1,4 +1,81 @@
-const API_URL = 'http://localhost:5000/api';
+const API_URL = `${window.location.origin}/api`;
+
+// ==================== INICIALIZACIÓN ====================
+document.addEventListener('DOMContentLoaded', () => {
+  cargarAutores(); // Cargar autores automáticamente al abrir la página
+});
+
+// ==================== VALIDACIONES ====================
+// Mapear errores del servidor a mensajes amigables
+function mapearErrorServidor(error, tipo) {
+  if (error.includes('E11000') || error.includes('duplicate')) {
+    return 'Este registro ya existe. No puede haber duplicados en las claves primarias.';
+  }
+  if (error.includes('validation')) {
+    return 'Los datos ingresados no son válidos. Revisa los campos requeridos.';
+  }
+  if (error.includes('not found')) {
+    return 'El registro no existe.';
+  }
+  return error;
+}
+
+// Validar que un RUT exista
+async function validarRutExiste(rut) {
+  try {
+    const response = await fetch(`${API_URL}/usuarios/${rut}`);
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+// Validar que un ISBN exista
+async function validarISBNExiste(isbn) {
+  try {
+    const response = await fetch(`${API_URL}/ediciones/${isbn}`);
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+// Validar que una copia exista
+async function validarCopiaExiste(numero, edicion_id) {
+  try {
+    const response = await fetch(`${API_URL}/copias`);
+    const copias = await response.json();
+    return copias.some(c => c._id.numero === parseInt(numero) && c._id.edicion_id === edicion_id);
+  } catch {
+    return false;
+  }
+}
+
+// Validar que un autor exista
+async function validarAutorExiste(nombre) {
+  try {
+    const response = await fetch(`${API_URL}/autores`);
+    const autores = await response.json();
+    return autores.some(a => a._id === nombre);
+  } catch {
+    return false;
+  }
+}
+
+// Validar formato de fecha
+function validarFecha(fechaStr) {
+  if (!fechaStr) return false;
+  const fecha = new Date(fechaStr);
+  return !isNaN(fecha.getTime());
+}
+
+// Validar que fecha de devolución sea posterior a fecha de préstamo
+function validarFechasPrestamo(fechaPrestamo, fechaDevolucion) {
+  if (!fechaDevolucion) return true; // Es opcional
+  const prestamo = new Date(fechaPrestamo);
+  const devolucion = new Date(fechaDevolucion);
+  return devolucion > prestamo;
+}
 
 // ==================== TABS ====================
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -34,7 +111,8 @@ async function cargarAutores() {
     tbody.innerHTML = '';
     
     autores.forEach(autor => {
-      const row = `<tr><td>${autor._id}</td><td>${autor.nombre}</td><td><button class="btn-edit" onclick="editarAutor('${autor._id}', '${autor.nombre}')">Editar</button><button class="btn-delete" onclick="eliminarAutor('${autor._id}')">Eliminar</button></td></tr>`;
+      const nombre = autor._id;
+      const row = `<tr><td>${nombre}</td><td><button class="btn-edit" onclick="editarAutor('${nombre}')">Editar</button><button class="btn-delete" onclick="eliminarAutor('${nombre}')">Eliminar</button></td></tr>`;
       tbody.innerHTML += row;
     });
   } catch (error) {
@@ -44,33 +122,54 @@ async function cargarAutores() {
 
 async function guardarAutor(e) {
   e.preventDefault();
-  const id = document.getElementById('autorId').value;
-  const nombre = document.getElementById('autorNombre').value;
+  const nombreAntiguo = document.getElementById('autorId').value;
+  const nombreNuevo = document.getElementById('autorNombre').value.trim();
+  
+  if (!nombreNuevo) {
+    mostrarMensaje('El nombre del autor es obligatorio', 'error');
+    return;
+  }
+  
+  if (nombreNuevo.length < 3) {
+    mostrarMensaje('El nombre debe tener al menos 3 caracteres', 'error');
+    return;
+  }
+  
+  // Validar duplicado si es nuevo nombre
+  if (!nombreAntiguo && nombreNuevo !== nombreAntiguo) {
+    const existe = await validarAutorExiste(nombreNuevo);
+    if (existe) {
+      mostrarMensaje('Este nombre de autor ya existe. No se pueden repetir los mismos nombres.', 'error');
+      return;
+    }
+  }
   
   try {
-    const method = id ? 'PUT' : 'POST';
-    const url = id ? `${API_URL}/autores/${id}` : `${API_URL}/autores`;
+    const method = nombreAntiguo ? 'PUT' : 'POST';
+    const url = nombreAntiguo ? `${API_URL}/autores/${nombreAntiguo}` : `${API_URL}/autores`;
     
     const response = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre })
+      body: JSON.stringify({ nombre: nombreNuevo })
     });
     
     if (response.ok) {
-      mostrarMensaje(`Autor ${id ? 'actualizado' : 'creado'} correctamente`, 'success');
+      mostrarMensaje(`Autor ${nombreAntiguo ? 'actualizado' : 'creado'} correctamente`, 'success');
       limpiarFormAutor();
       cargarAutores();
     } else {
-      mostrarMensaje('Error al guardar autor', 'error');
+      const error = await response.json();
+      const mensajeAmigable = mapearErrorServidor(error.error || 'No se pudo guardar', 'autor');
+      mostrarMensaje('Error: ' + mensajeAmigable, 'error');
     }
   } catch (error) {
     mostrarMensaje('Error: ' + error.message, 'error');
   }
 }
 
-function editarAutor(id, nombre) {
-  document.getElementById('autorId').value = id;
+function editarAutor(nombre) {
+  document.getElementById('autorId').value = nombre;
   document.getElementById('autorNombre').value = nombre;
 }
 
@@ -80,16 +179,20 @@ function limpiarFormAutor() {
 }
 
 async function eliminarAutor(id) {
-  if (!confirm('¿Está seguro de eliminar este autor?')) return;
-  try {
-    const response = await fetch(`${API_URL}/autores/${id}`, { method: 'DELETE' });
-    if (response.ok) {
-      mostrarMensaje('Autor eliminado', 'success');
-      cargarAutores();
+  mostrarConfirmacion('¿Está seguro de que desea eliminar este autor?', async (confirmado) => {
+    if (!confirmado) return;
+    try {
+      const response = await fetch(`${API_URL}/autores/${id}`, { method: 'DELETE' });
+      if (response.ok) {
+        mostrarMensaje('Autor eliminado', 'success');
+        cargarAutores();
+      } else {
+        mostrarMensaje('Error al eliminar', 'error');
+      }
+    } catch (error) {
+      mostrarMensaje('Error al eliminar', 'error');
     }
-  } catch (error) {
-    mostrarMensaje('Error al eliminar', 'error');
-  }
+  });
 }
 
 // ==================== LIBROS ====================
@@ -103,7 +206,9 @@ async function cargarLibros() {
     tbody.innerHTML = '';
     
     libros.forEach(libro => {
-      const row = `<tr><td>${libro._id}</td><td>${libro.titulo}</td><td>${libro.autores?.join(', ') || '-'}</td><td><button class="btn-edit" onclick="editarLibro('${libro._id}', '${libro.titulo}', '${libro.autores?.join(',')}')">Editar</button><button class="btn-delete" onclick="eliminarLibro('${libro._id}')">Eliminar</button></td></tr>`;
+      const titulo = libro._id;
+      const autores = (libro.autor_ids || []).join(', ') || '-';
+      const row = `<tr><td>${titulo}</td><td>${autores}</td><td><button class="btn-edit" onclick="editarLibro('${titulo}', '${(libro.autor_ids || []).join(',')}')">Editar</button><button class="btn-delete" onclick="eliminarLibro('${titulo}')">Eliminar</button></td></tr>`;
       tbody.innerHTML += row;
     });
   } catch (error) {
@@ -113,35 +218,61 @@ async function cargarLibros() {
 
 async function guardarLibro(e) {
   e.preventDefault();
-  const id = document.getElementById('libroId').value;
-  const titulo = document.getElementById('libroTitulo').value;
+  const tituloAntiguo = document.getElementById('libroId').value;
+  const tituloNuevo = document.getElementById('libroTitulo').value.trim();
   const autoresStr = document.getElementById('libroAutores').value;
-  const autores = autoresStr ? autoresStr.split(',').map(a => a.trim()) : [];
+  const autor_ids = autoresStr ? autoresStr.split(',').map(a => a.trim()).filter(a => a) : [];
+  
+  if (!tituloNuevo) {
+    mostrarMensaje('El título del libro es obligatorio', 'error');
+    return;
+  }
+  
+  if (!autor_ids.length) {
+    mostrarMensaje('Debe ingresar al menos un autor', 'error');
+    return;
+  }
+  
+  if (tituloNuevo.length < 3) {
+    mostrarMensaje('El título debe tener al menos 3 caracteres', 'error');
+    return;
+  }
+  
+  // Validar que todos los autores existan
+  for (const autor of autor_ids) {
+    const existe = await validarAutorExiste(autor);
+    if (!existe) {
+      mostrarMensaje(`El autor "${autor}" no existe en el sistema`, 'error');
+      return;
+    }
+  }
   
   try {
-    const method = id ? 'PUT' : 'POST';
-    const url = id ? `${API_URL}/libros/${id}` : `${API_URL}/libros`;
+    const method = tituloAntiguo ? 'PUT' : 'POST';
+    const url = tituloAntiguo ? `${API_URL}/libros/${tituloAntiguo}` : `${API_URL}/libros`;
     
     const response = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ titulo, autores })
+      body: JSON.stringify({ titulo: tituloNuevo, autor_ids })
     });
     
     if (response.ok) {
-      mostrarMensaje(`Libro ${id ? 'actualizado' : 'creado'} correctamente`, 'success');
+      mostrarMensaje(`Libro ${tituloAntiguo ? 'actualizado' : 'creado'} correctamente`, 'success');
       limpiarFormLibro();
       cargarLibros();
     } else {
-      mostrarMensaje('Error al guardar libro', 'error');
+      const error = await response.json();
+      const mensajeAmigable = mapearErrorServidor(error.error || 'No se pudo guardar', 'libro');
+      mostrarMensaje('Error: ' + mensajeAmigable, 'error');
     }
   } catch (error) {
     mostrarMensaje('Error: ' + error.message, 'error');
   }
 }
 
-function editarLibro(id, titulo, autores) {
-  document.getElementById('libroId').value = id;
+function editarLibro(titulo, autores) {
+  document.getElementById('libroId').value = titulo;
   document.getElementById('libroTitulo').value = titulo;
   document.getElementById('libroAutores').value = autores;
 }
@@ -152,16 +283,20 @@ function limpiarFormLibro() {
 }
 
 async function eliminarLibro(id) {
-  if (!confirm('¿Está seguro?')) return;
-  try {
-    const response = await fetch(`${API_URL}/libros/${id}`, { method: 'DELETE' });
-    if (response.ok) {
-      mostrarMensaje('Libro eliminado', 'success');
-      cargarLibros();
+  mostrarConfirmacion('¿Está seguro de que desea eliminar este libro?', async (confirmado) => {
+    if (!confirmado) return;
+    try {
+      const response = await fetch(`${API_URL}/libros/${id}`, { method: 'DELETE' });
+      if (response.ok) {
+        mostrarMensaje('Libro eliminado', 'success');
+        cargarLibros();
+      } else {
+        mostrarMensaje('Error al eliminar', 'error');
+      }
+    } catch (error) {
+      mostrarMensaje('Error al eliminar', 'error');
     }
-  } catch (error) {
-    mostrarMensaje('Error al eliminar', 'error');
-  }
+  });
 }
 
 // ==================== EDICIONES ====================
@@ -175,7 +310,8 @@ async function cargarEdiciones() {
     tbody.innerHTML = '';
     
     ediciones.forEach(ed => {
-      const row = `<tr><td>${ed._id}</td><td>${ed.ISBN}</td><td>${ed.año}</td><td>${ed.idioma}</td><td>${ed.libro_id}</td><td><button class="btn-edit" onclick="editarEdicion('${ed._id}', '${ed.ISBN}', ${ed.año}, '${ed.idioma}', '${ed.libro_id}')">Editar</button><button class="btn-delete" onclick="eliminarEdicion('${ed._id}')">Eliminar</button></td></tr>`;
+      const ISBN = ed._id;
+      const row = `<tr><td>${ISBN}</td><td>${ed.anio}</td><td>${ed.idioma}</td><td>${ed.libro_id}</td><td><button class="btn-edit" onclick="editarEdicion('${ISBN}', ${ed.anio}, '${ed.idioma}', '${ed.libro_id}')">Editar</button><button class="btn-delete" onclick="eliminarEdicion('${ISBN}')">Eliminar</button></td></tr>`;
       tbody.innerHTML += row;
     });
   } catch (error) {
@@ -185,38 +321,67 @@ async function cargarEdiciones() {
 
 async function guardarEdicion(e) {
   e.preventDefault();
-  const id = document.getElementById('edicionId').value;
-  const ISBN = document.getElementById('edicionISBN').value;
-  const año = document.getElementById('edicionAño').value;
-  const idioma = document.getElementById('edicionIdioma').value;
-  const libro_id = document.getElementById('edicionLibroId').value;
+  const ISBNAntiguo = document.getElementById('edicionId').value;
+  const ISBN = document.getElementById('edicionISBN').value.trim();
+  const anio = document.getElementById('edicionAño').value;
+  const idioma = document.getElementById('edicionIdioma').value.trim();
+  const libro_id = document.getElementById('edicionLibroId').value.trim();
+  
+  if (!ISBN || !anio || !idioma || !libro_id) {
+    mostrarMensaje('Todos los campos son obligatorios', 'error');
+    return;
+  }
+  
+  // Validar que el libro exista
+  try {
+    const response = await fetch(`${API_URL}/libros/${libro_id}`);
+    if (!response.ok) {
+      mostrarMensaje(`El libro "${libro_id}" no existe en el sistema`, 'error');
+      return;
+    }
+  } catch {
+    mostrarMensaje('Error validando el libro', 'error');
+    return;
+  }
+  
+  if (isNaN(parseInt(anio)) || parseInt(anio) < 1000 || parseInt(anio) > new Date().getFullYear()) {
+    mostrarMensaje(`El año debe ser entre 1000 y ${new Date().getFullYear()}`, 'error');
+    return;
+  }
+  
+  if (idioma.length < 2) {
+    mostrarMensaje('El idioma debe tener al menos 2 caracteres', 'error');
+    return;
+  }
   
   try {
-    const method = id ? 'PUT' : 'POST';
-    const url = id ? `${API_URL}/ediciones/${id}` : `${API_URL}/ediciones`;
+    const method = ISBNAntiguo ? 'PUT' : 'POST';
+    const url = ISBNAntiguo ? `${API_URL}/ediciones/${ISBNAntiguo}` : `${API_URL}/ediciones`;
     
     const response = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ISBN, año, idioma, libro_id })
+      body: JSON.stringify({ ISBN, anio: parseInt(anio), idioma, libro_id })
     });
     
     if (response.ok) {
-      mostrarMensaje(`Edición ${id ? 'actualizada' : 'creada'} correctamente`, 'success');
+      mostrarMensaje(`Edición ${ISBNAntiguo ? 'actualizada' : 'creada'} correctamente`, 'success');
       limpiarFormEdicion();
       cargarEdiciones();
     } else {
-      mostrarMensaje('Error al guardar edición', 'error');
+      const error = await response.json();
+      const mensajeAmigable = mapearErrorServidor(error.error || 'No se pudo guardar', 'edicion');
+      mostrarMensaje('Error: ' + mensajeAmigable, 'error');
     }
   } catch (error) {
     mostrarMensaje('Error: ' + error.message, 'error');
   }
 }
 
-function editarEdicion(id, ISBN, año, idioma, libro_id) {
-  document.getElementById('edicionId').value = id;
+function editarEdicion(ISBN, anio, idioma, libro_id) {
+  document.getElementById('edicionId').value = ISBN;
   document.getElementById('edicionISBN').value = ISBN;
-  document.getElementById('edicionAño').value = año;
+  document.getElementById('edicionAño').value = anio;
   document.getElementById('edicionIdioma').value = idioma;
   document.getElementById('edicionLibroId').value = libro_id;
 }
@@ -227,16 +392,20 @@ function limpiarFormEdicion() {
 }
 
 async function eliminarEdicion(id) {
-  if (!confirm('¿Está seguro?')) return;
-  try {
-    const response = await fetch(`${API_URL}/ediciones/${id}`, { method: 'DELETE' });
-    if (response.ok) {
-      mostrarMensaje('Edición eliminada', 'success');
-      cargarEdiciones();
+  mostrarConfirmacion('¿Está seguro de que desea eliminar esta edición?', async (confirmado) => {
+    if (!confirmado) return;
+    try {
+      const response = await fetch(`${API_URL}/ediciones/${id}`, { method: 'DELETE' });
+      if (response.ok) {
+        mostrarMensaje('Edición eliminada', 'success');
+        cargarEdiciones();
+      } else {
+        mostrarMensaje('Error al eliminar', 'error');
+      }
+    } catch (error) {
+      mostrarMensaje('Error al eliminar', 'error');
     }
-  } catch (error) {
-    mostrarMensaje('Error al eliminar', 'error');
-  }
+  });
 }
 
 // ==================== COPIAS ====================
@@ -249,9 +418,29 @@ async function cargarCopias() {
     const tbody = document.querySelector('#tablCopias tbody');
     tbody.innerHTML = '';
     
-    copias.forEach(copia => {
-      const row = `<tr><td>${copia._id}</td><td>${copia.numero}</td><td>${copia.edicion_id}</td><td><button class="btn-edit" onclick="editarCopia('${copia._id}', ${copia.numero}, '${copia.edicion_id}')">Editar</button><button class="btn-delete" onclick="eliminarCopia('${copia._id}')">Eliminar</button></td></tr>`;
+    copias.forEach((copia, idx) => {
+      const numero = copia._id.numero;
+      const edicion_id = copia._id.edicion_id;
+      const btnId = `copia-btn-${idx}`;
+      const row = `<tr><td>${numero}</td><td>${edicion_id}</td><td><button class="btn-edit" id="edit-${btnId}" data-numero="${numero}" data-edicion="${edicion_id}" data-id='${JSON.stringify(copia._id)}'>Editar</button><button class="btn-delete" id="del-${btnId}" data-id='${JSON.stringify(copia._id)}'>Eliminar</button></td></tr>`;
       tbody.innerHTML += row;
+    });
+    
+    // Agregar event listeners
+    document.querySelectorAll('[id^="edit-copia-"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const numero = btn.dataset.numero;
+        const edicion = btn.dataset.edicion;
+        const id = btn.dataset.id;
+        editarCopia(id, numero, edicion);
+      });
+    });
+    
+    document.querySelectorAll('[id^="del-copia-"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        eliminarCopia(id);
+      });
     });
   } catch (error) {
     mostrarMensaje('Error cargando copias', 'error');
@@ -260,36 +449,61 @@ async function cargarCopias() {
 
 async function guardarCopia(e) {
   e.preventDefault();
-  const id = document.getElementById('copiaId').value;
+  const idAntiguo = document.getElementById('copiaId').value;
   const numero = document.getElementById('copiaNumero').value;
-  const edicion_id = document.getElementById('copiaEdicionId').value;
+  const edicion_id = document.getElementById('copiaEdicionId').value.trim();
+  
+  if (!numero || !edicion_id) {
+    mostrarMensaje('Todos los campos son obligatorios', 'error');
+    return;
+  }
+  
+  if (isNaN(parseInt(numero)) || parseInt(numero) < 1) {
+    mostrarMensaje('El número de copia debe ser un entero positivo', 'error');
+    return;
+  }
+  
+  // Validar que la edición exista
+  const edicionExiste = await validarISBNExiste(edicion_id);
+  if (!edicionExiste) {
+    mostrarMensaje(`El ISBN "${edicion_id}" no existe en el sistema`, 'error');
+    return;
+  }
   
   try {
-    const method = id ? 'PUT' : 'POST';
-    const url = id ? `${API_URL}/copias/${id}` : `${API_URL}/copias`;
+    const method = idAntiguo ? 'PUT' : 'POST';
+    const url = idAntiguo ? `${API_URL}/copias/${idAntiguo}` : `${API_URL}/copias`;
     
     const response = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ numero, edicion_id })
+      body: JSON.stringify({ numero: parseInt(numero), edicion_id })
     });
     
     if (response.ok) {
-      mostrarMensaje(`Copia ${id ? 'actualizada' : 'creada'} correctamente`, 'success');
+      mostrarMensaje(`Copia ${idAntiguo ? 'actualizada' : 'creada'} correctamente`, 'success');
       limpiarFormCopia();
       cargarCopias();
     } else {
-      mostrarMensaje('Error al guardar copia', 'error');
+      const error = await response.json();
+      const mensajeAmigable = mapearErrorServidor(error.error || 'No se pudo guardar', 'copia');
+      mostrarMensaje('Error: ' + mensajeAmigable, 'error');
     }
   } catch (error) {
     mostrarMensaje('Error: ' + error.message, 'error');
   }
 }
 
-function editarCopia(id, numero, edicion_id) {
-  document.getElementById('copiaId').value = id;
-  document.getElementById('copiaNumero').value = numero;
-  document.getElementById('copiaEdicionId').value = edicion_id;
+function editarCopia(idStr, numero, edicion_id) {
+  // idStr es un string JSON
+  try {
+    const id = typeof idStr === 'string' ? JSON.parse(idStr) : idStr;
+    document.getElementById('copiaId').value = JSON.stringify(id);
+    document.getElementById('copiaNumero').value = id.numero;
+    document.getElementById('copiaEdicionId').value = id.edicion_id;
+  } catch (e) {
+    mostrarMensaje('Error al cargar los datos para editar', 'error');
+  }
 }
 
 function limpiarFormCopia() {
@@ -297,17 +511,28 @@ function limpiarFormCopia() {
   document.getElementById('copiaId').value = '';
 }
 
-async function eliminarCopia(id) {
-  if (!confirm('¿Está seguro?')) return;
-  try {
-    const response = await fetch(`${API_URL}/copias/${id}`, { method: 'DELETE' });
-    if (response.ok) {
-      mostrarMensaje('Copia eliminada', 'success');
-      cargarCopias();
+async function eliminarCopia(idStr) {
+  mostrarConfirmacion('¿Está seguro de que desea eliminar esta copia?', async (confirmado) => {
+    if (!confirmado) return;
+    try {
+      // Parseamos el JSON string si es necesario
+      const id = typeof idStr === 'string' && idStr.startsWith('{') ? JSON.parse(idStr) : idStr;
+      const idEncoded = encodeURIComponent(JSON.stringify(id));
+      const url = `${API_URL}/copias/${idEncoded}`;
+      
+      const response = await fetch(url, { method: 'DELETE' });
+      if (response.ok) {
+        mostrarMensaje('Copia eliminada correctamente', 'success');
+        cargarCopias();
+      } else {
+        const error = await response.json();
+        const mensajeAmigable = mapearErrorServidor(error.error || 'No se pudo eliminar', 'copia');
+        mostrarMensaje('Error: ' + mensajeAmigable, 'error');
+      }
+    } catch (error) {
+      mostrarMensaje('Error al eliminar: ' + error.message, 'error');
     }
-  } catch (error) {
-    mostrarMensaje('Error al eliminar', 'error');
-  }
+  });
 }
 
 // ==================== USUARIOS ====================
@@ -321,7 +546,9 @@ async function cargarUsuarios() {
     tbody.innerHTML = '';
     
     usuarios.forEach(usuario => {
-      const row = `<tr><td>${usuario._id}</td><td>${usuario.RUT}</td><td>${usuario.nombre}</td><td><button class="btn-edit" onclick="editarUsuario('${usuario._id}', '${usuario.RUT}', '${usuario.nombre}')">Editar</button><button class="btn-delete" onclick="eliminarUsuario('${usuario._id}')">Eliminar</button></td></tr>`;
+      const rut = usuario._id;
+      const nombre = usuario.nombre;
+      const row = `<tr><td>${rut}</td><td>${nombre}</td><td><button class="btn-edit" onclick="editarUsuario('${rut}', '${nombre}')">Editar</button><button class="btn-delete" onclick="eliminarUsuario('${rut}')">Eliminar</button></td></tr>`;
       tbody.innerHTML += row;
     });
   } catch (error) {
@@ -331,35 +558,62 @@ async function cargarUsuarios() {
 
 async function guardarUsuario(e) {
   e.preventDefault();
-  const id = document.getElementById('usuarioId').value;
-  const RUT = document.getElementById('usuarioRUT').value;
-  const nombre = document.getElementById('usuarioNombre').value;
+  const rutAntiguo = document.getElementById('usuarioId').value;
+  const rut = document.getElementById('usuarioRUT').value.trim();
+  const nombre = document.getElementById('usuarioNombre').value.trim();
+  
+  if (!rut || !nombre) {
+    mostrarMensaje('Todos los campos son obligatorios', 'error');
+    return;
+  }
+  
+  if (nombre.length < 3) {
+    mostrarMensaje('El nombre debe tener al menos 3 caracteres', 'error');
+    return;
+  }
+  
+  // Validar formato de RUT básico
+  if (rut.length < 5) {
+    mostrarMensaje('El RUT parece inválido', 'error');
+    return;
+  }
+  
+  // Validar duplicado si es nuevo RUT
+  if (!rutAntiguo && rut !== rutAntiguo) {
+    const existe = await validarRutExiste(rut);
+    if (existe) {
+      mostrarMensaje('Este RUT de usuario ya existe. No se pueden repetir los mismos RUT.', 'error');
+      return;
+    }
+  }
   
   try {
-    const method = id ? 'PUT' : 'POST';
-    const url = id ? `${API_URL}/usuarios/${id}` : `${API_URL}/usuarios`;
+    const method = rutAntiguo ? 'PUT' : 'POST';
+    const url = rutAntiguo ? `${API_URL}/usuarios/${rutAntiguo}` : `${API_URL}/usuarios`;
     
     const response = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ RUT, nombre })
+      body: JSON.stringify({ rut, nombre })
     });
     
     if (response.ok) {
-      mostrarMensaje(`Usuario ${id ? 'actualizado' : 'creado'} correctamente`, 'success');
+      mostrarMensaje(`Usuario ${rutAntiguo ? 'actualizado' : 'creado'} correctamente`, 'success');
       limpiarFormUsuario();
       cargarUsuarios();
     } else {
-      mostrarMensaje('Error al guardar usuario', 'error');
+      const error = await response.json();
+      const mensajeAmigable = mapearErrorServidor(error.error || 'No se pudo guardar', 'usuario');
+      mostrarMensaje('Error: ' + mensajeAmigable, 'error');
     }
   } catch (error) {
     mostrarMensaje('Error: ' + error.message, 'error');
   }
 }
 
-function editarUsuario(id, RUT, nombre) {
-  document.getElementById('usuarioId').value = id;
-  document.getElementById('usuarioRUT').value = RUT;
+function editarUsuario(rut, nombre) {
+  document.getElementById('usuarioId').value = rut;
+  document.getElementById('usuarioRUT').value = rut;
   document.getElementById('usuarioNombre').value = nombre;
 }
 
@@ -369,16 +623,20 @@ function limpiarFormUsuario() {
 }
 
 async function eliminarUsuario(id) {
-  if (!confirm('¿Está seguro?')) return;
-  try {
-    const response = await fetch(`${API_URL}/usuarios/${id}`, { method: 'DELETE' });
-    if (response.ok) {
-      mostrarMensaje('Usuario eliminado', 'success');
-      cargarUsuarios();
+  mostrarConfirmacion('¿Está seguro de que desea eliminar este usuario?', async (confirmado) => {
+    if (!confirmado) return;
+    try {
+      const response = await fetch(`${API_URL}/usuarios/${id}`, { method: 'DELETE' });
+      if (response.ok) {
+        mostrarMensaje('Usuario eliminado', 'success');
+        cargarUsuarios();
+      } else {
+        mostrarMensaje('Error al eliminar', 'error');
+      }
+    } catch (error) {
+      mostrarMensaje('Error al eliminar', 'error');
     }
-  } catch (error) {
-    mostrarMensaje('Error al eliminar', 'error');
-  }
+  });
 }
 
 // ==================== PRÉSTAMOS ====================
@@ -386,14 +644,37 @@ document.getElementById('formPrestamo')?.addEventListener('submit', guardarPrest
 
 async function cargarPrestamos() {
   try {
+    // Cargar usuarios primero para obtener los nombres
+    const usuariosRes = await fetch(`${API_URL}/usuarios`);
+    const usuarios = await usuariosRes.json();
+    const usuariosMap = {};
+    usuarios.forEach(u => {
+      usuariosMap[u._id] = u.nombre;
+    });
+
     const response = await fetch(`${API_URL}/prestamos`);
     const prestamos = await response.json();
     const tbody = document.querySelector('#tablPrestamos tbody');
     tbody.innerHTML = '';
     
-    prestamos.forEach(prestamo => {
-      const row = `<tr><td>${prestamo._id}</td><td>${prestamo.copia_id}</td><td>${prestamo.usuario_id}</td><td>${new Date(prestamo.fecha_prestamo).toLocaleString()}</td><td>${prestamo.fecha_devolucion ? new Date(prestamo.fecha_devolucion).toLocaleString() : '-'}</td><td><button class="btn-edit" onclick="editarPrestamo('${prestamo._id}', '${prestamo.copia_id}', '${prestamo.usuario_id}', '${prestamo.fecha_prestamo}', '${prestamo.fecha_devolucion || ''}')">Editar</button><button class="btn-delete" onclick="eliminarPrestamo('${prestamo._id}')">Eliminar</button></td></tr>`;
+    prestamos.forEach((prestamo, idx) => {
+      const usuario_id = prestamo._id.usuario_id;
+      const usuario_nombre = usuariosMap[usuario_id] || usuario_id;
+      const numero = prestamo._id.copia_id.numero;
+      const isbn = prestamo._id.copia_id.edicion_id;
+      const fecha_prestamo = prestamo._id.fecha_prestamo;
+      const fecha_devolucion = prestamo.fecha_devolucion || '-';
+      const btnId = `prestamo-btn-${idx}`;
+      const row = `<tr><td>${usuario_id}</td><td>${usuario_nombre}</td><td>${numero}</td><td>${isbn}</td><td>${fecha_prestamo}</td><td>${fecha_devolucion}</td><td><button class="btn-delete" id="del-${btnId}" data-id='${JSON.stringify(prestamo._id)}'>Eliminar</button></td></tr>`;
       tbody.innerHTML += row;
+    });
+    
+    // Agregar event listeners
+    document.querySelectorAll('[id^="del-prestamo-"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        eliminarPrestamo(id);
+      });
     });
   } catch (error) {
     mostrarMensaje('Error cargando préstamos', 'error');
@@ -402,72 +683,149 @@ async function cargarPrestamos() {
 
 async function guardarPrestamo(e) {
   e.preventDefault();
-  const id = document.getElementById('prestamoId').value;
-  const copia_id = document.getElementById('prestamoCopiaId').value;
-  const usuario_id = document.getElementById('prestamoUsuarioId').value;
+  const usuario_id = document.getElementById('prestamoUsuarioId').value.trim();
+  const copiaNumero = document.getElementById('prestamoCopiaNumero').value;
+  const copiaEdicionId = document.getElementById('prestamoCopiaEdicionId').value.trim();
   const fecha_prestamo = document.getElementById('prestamoFechaPrestamo').value;
-  const fecha_devolucion = document.getElementById('prestamoFechaDevolucion').value;
+  const fecha_devolucion = document.getElementById('prestamoFechaDevolucion').value || null;
+  
+  if (!usuario_id || !copiaNumero || !copiaEdicionId || !fecha_prestamo) {
+    mostrarMensaje('Los campos obligatorios no pueden estar vacíos', 'error');
+    return;
+  }
+  
+  // Validar que el RUT exista
+  const rutExiste = await validarRutExiste(usuario_id);
+  if (!rutExiste) {
+    mostrarMensaje(`El RUT "${usuario_id}" no existe en el sistema`, 'error');
+    return;
+  }
+  
+  // Validar que el ISBN exista
+  const isbnExiste = await validarISBNExiste(copiaEdicionId);
+  if (!isbnExiste) {
+    mostrarMensaje(`El ISBN "${copiaEdicionId}" no existe en el sistema`, 'error');
+    return;
+  }
+  
+  // Validar que la copia exista
+  const copiaExiste = await validarCopiaExiste(copiaNumero, copiaEdicionId);
+  if (!copiaExiste) {
+    mostrarMensaje(`La copia número ${copiaNumero} del ISBN ${copiaEdicionId} no existe`, 'error');
+    return;
+  }
+  
+  // Validar formato de fechas
+  if (!validarFecha(fecha_prestamo)) {
+    mostrarMensaje('La fecha de préstamo no es válida', 'error');
+    return;
+  }
+  
+  if (fecha_devolucion && !validarFecha(fecha_devolucion)) {
+    mostrarMensaje('La fecha de devolución no es válida', 'error');
+    return;
+  }
+  
+  // Validar que fecha de devolución sea posterior a prestamo
+  if (fecha_devolucion && !validarFechasPrestamo(fecha_prestamo, fecha_devolucion)) {
+    mostrarMensaje('La fecha de devolución debe ser posterior a la fecha de préstamo', 'error');
+    return;
+  }
   
   try {
-    const method = id ? 'PUT' : 'POST';
-    const url = id ? `${API_URL}/prestamos/${id}` : `${API_URL}/prestamos`;
+    const copia_id = { numero: parseInt(copiaNumero), edicion_id: copiaEdicionId };
     
-    const response = await fetch(url, {
-      method,
+    const response = await fetch(`${API_URL}/prestamos`, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ copia_id, usuario_id, fecha_prestamo, fecha_devolucion })
+      body: JSON.stringify({ usuario_id, copia_id, fecha_prestamo, fecha_devolucion })
     });
     
     if (response.ok) {
-      mostrarMensaje(`Préstamo ${id ? 'actualizado' : 'creado'} correctamente`, 'success');
+      mostrarMensaje('Préstamo creado correctamente', 'success');
       limpiarFormPrestamo();
       cargarPrestamos();
     } else {
-      mostrarMensaje('Error al guardar préstamo', 'error');
+      const error = await response.json();
+      const mensajeAmigable = mapearErrorServidor(error.error || 'No se pudo guardar', 'prestamo');
+      mostrarMensaje('Error: ' + mensajeAmigable, 'error');
     }
   } catch (error) {
     mostrarMensaje('Error: ' + error.message, 'error');
   }
 }
 
-function editarPrestamo(id, copia_id, usuario_id, fecha_prestamo, fecha_devolucion) {
-  document.getElementById('prestamoId').value = id;
-  document.getElementById('prestamoCopiaId').value = copia_id;
-  document.getElementById('prestamoUsuarioId').value = usuario_id;
-  document.getElementById('prestamoFechaPrestamo').value = fecha_prestamo.replace('Z', '').slice(0, 16);
-  if (fecha_devolucion) {
-    document.getElementById('prestamoFechaDevolucion').value = fecha_devolucion.replace('Z', '').slice(0, 16);
-  }
-}
-
 function limpiarFormPrestamo() {
   document.getElementById('formPrestamo').reset();
-  document.getElementById('prestamoId').value = '';
 }
 
-async function eliminarPrestamo(id) {
-  if (!confirm('¿Está seguro?')) return;
-  try {
-    const response = await fetch(`${API_URL}/prestamos/${id}`, { method: 'DELETE' });
-    if (response.ok) {
-      mostrarMensaje('Préstamo eliminado', 'success');
-      cargarPrestamos();
+async function eliminarPrestamo(idStr) {
+  mostrarConfirmacion('¿Está seguro de que desea eliminar este préstamo?', async (confirmado) => {
+    if (!confirmado) return;
+    try {
+      // Parseamos el JSON string si es necesario
+      const id = typeof idStr === 'string' && idStr.startsWith('{') ? JSON.parse(idStr) : idStr;
+      const idEncoded = encodeURIComponent(JSON.stringify(id));
+      const url = `${API_URL}/prestamos/${idEncoded}`;
+      
+      const response = await fetch(url, { method: 'DELETE' });
+      if (response.ok) {
+        mostrarMensaje('Préstamo eliminado correctamente', 'success');
+        cargarPrestamos();
+      } else {
+        const error = await response.json();
+        const mensajeAmigable = mapearErrorServidor(error.error || 'No se pudo eliminar', 'prestamo');
+        mostrarMensaje('Error: ' + mensajeAmigable, 'error');
+      }
+    } catch (error) {
+      mostrarMensaje('Error al eliminar: ' + error.message, 'error');
     }
-  } catch (error) {
-    mostrarMensaje('Error al eliminar', 'error');
-  }
+  });
 }
 
-// ==================== MENSAJES ====================
+// ==================== UTILIDADES ====================
 function mostrarMensaje(texto, tipo) {
-  const msg = document.createElement('div');
-  msg.className = `message ${tipo}`;
-  msg.textContent = texto;
-  document.body.insertBefore(msg, document.body.firstChild);
-  setTimeout(() => msg.remove(), 3000);
+  const msgDiv = document.createElement('div');
+  msgDiv.className = `message ${tipo}`;
+  msgDiv.textContent = texto;
+  document.body.appendChild(msgDiv);
+  
+  // Remover después de 4 segundos
+  setTimeout(() => {
+    msgDiv.style.animation = 'slideOut 0.3s ease-out';
+    setTimeout(() => msgDiv.remove(), 300);
+  }, 4000);
 }
 
-// Cargar autores al iniciar
-window.addEventListener('load', () => {
-  cargarAutores();
-});
+// Modal de confirmación personalizado
+function mostrarConfirmacion(mensaje, callback) {
+  const modal = document.getElementById('modalConfirm');
+  const modalMensaje = modal.querySelector('.modal-mensaje');
+  const btnSi = document.getElementById('btnSi');
+  const btnNo = document.getElementById('btnNo');
+  
+  modalMensaje.textContent = mensaje;
+  modal.classList.add('show');
+  
+  const handleSi = () => {
+    modal.classList.remove('show');
+    btnSi.removeEventListener('click', handleSi);
+    btnNo.removeEventListener('click', handleNo);
+    callback(true);
+  };
+  
+  const handleNo = () => {
+    modal.classList.remove('show');
+    btnSi.removeEventListener('click', handleSi);
+    btnNo.removeEventListener('click', handleNo);
+    callback(false);
+  };
+  
+  btnSi.addEventListener('click', handleSi);
+  btnNo.addEventListener('click', handleNo);
+  
+  // Cerrar al hacer clic fuera del modal
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) handleNo();
+  });
+}

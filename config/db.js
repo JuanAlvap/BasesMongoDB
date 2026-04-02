@@ -6,8 +6,8 @@ async function connectDB() {
   try {
     const client = new MongoClient(process.env.MONGO_URL);
     await client.connect();
-    db = client.db('biblioteca');
-    console.log('✅ Conectado a MongoDB');
+    db = client.db('biblioteca_test');
+    console.log('✅ Conectado a MongoDB - biblioteca_test');
     return db;
   } catch (error) {
     console.error('❌ Error al conectar MongoDB:', error);
