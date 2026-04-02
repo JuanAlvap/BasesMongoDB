@@ -325,7 +325,7 @@ table tbody tr:hover {
 
 .modal-mensaje {
   color: #666;
-  margin-bottom: 25px;
+  margin-bottom: 0;
   font-size: 14px;
   line-height: 1.5;
 }
@@ -366,4 +366,62 @@ table tbody tr:hover {
 .modal-btn-si:hover {
   background-color: #da190b;
   transform: translateY(-2px);
+}
+
+.modal-btn-ok {
+  padding: 10px 40px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s;
+  width: 100%;
+}
+
+.modal-btn-ok {
+  background-color: #667eea;
+  color: white;
+}
+
+.modal-btn-ok:hover {
+  background-color: #764ba2;
+  transform: translateY(-2px);
+}
+
+/* Variantes de colores para modales */
+.modal.error .modal-titulo {
+  color: #f44336;
+}
+
+.modal.error .modal-btn-ok {
+  background-color: #f44336;
+}
+
+.modal.error .modal-btn-ok:hover {
+  background-color: #da190b;
+}
+
+.modal.success .modal-titulo {
+  color: #4CAF50;
+}
+
+.modal.success .modal-btn-ok {
+  background-color: #4CAF50;
+}
+
+.modal.success .modal-btn-ok:hover {
+  background-color: #45a049;
+}
+
+.modal.info .modal-titulo {
+  color: #667eea;
+}
+
+.modal.info .modal-btn-ok {
+  background-color: #667eea;
+}
+
+.modal.info .modal-btn-ok:hover {
+  background-color: #764ba2;
 }

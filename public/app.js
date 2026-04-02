@@ -62,11 +62,24 @@ async function validarAutorExiste(nombre) {
   }
 }
 
-// Validar formato de fecha
-function validarFecha(fechaStr) {
-  if (!fechaStr) return false;
-  const fecha = new Date(fechaStr);
-  return !isNaN(fecha.getTime());
+// Validar que una copia no esté prestada sin devolverse
+async function validarCopiaPuedePrestar(copiaNumero, copiaEdicionId) {
+  try {
+    const response = await fetch(`${API_URL}/prestamos`);
+    const prestamos = await response.json();
+    
+    // Buscar si hay un préstamo activo (sin devolución) para esta copia
+    const prestamoActivo = prestamos.find(p => 
+      p._id.copia_id.numero === parseInt(copiaNumero) &&
+      p._id.copia_id.edicion_id === copiaEdicionId &&
+      !p.fecha_devolucion // Sin devolución registrada
+    );
+    
+    // Retorna true si NO hay préstamo activo (pueda prestar)
+    return !prestamoActivo;
+  } catch {
+    return true; // Si hay error, permitir (débil pero mejor que bloquear)
+  }
 }
 
 // Validar que fecha de devolución sea posterior a fecha de préstamo
@@ -127,11 +140,13 @@ async function guardarAutor(e) {
   
   if (!nombreNuevo) {
     mostrarMensaje('El nombre del autor es obligatorio', 'error');
+    limpiarFormAutor();
     return;
   }
   
   if (nombreNuevo.length < 3) {
     mostrarMensaje('El nombre debe tener al menos 3 caracteres', 'error');
+    limpiarFormAutor();
     return;
   }
   
@@ -140,6 +155,7 @@ async function guardarAutor(e) {
     const existe = await validarAutorExiste(nombreNuevo);
     if (existe) {
       mostrarMensaje('Este nombre de autor ya existe. No se pueden repetir los mismos nombres.', 'error');
+      limpiarFormAutor();
       return;
     }
   }
@@ -162,9 +178,11 @@ async function guardarAutor(e) {
       const error = await response.json();
       const mensajeAmigable = mapearErrorServidor(error.error || 'No se pudo guardar', 'autor');
       mostrarMensaje('Error: ' + mensajeAmigable, 'error');
+      limpiarFormAutor();
     }
   } catch (error) {
     mostrarMensaje('Error: ' + error.message, 'error');
+    limpiarFormAutor();
   }
 }
 
@@ -225,16 +243,19 @@ async function guardarLibro(e) {
   
   if (!tituloNuevo) {
     mostrarMensaje('El título del libro es obligatorio', 'error');
+    limpiarFormLibro();
     return;
   }
   
   if (!autor_ids.length) {
     mostrarMensaje('Debe ingresar al menos un autor', 'error');
+    limpiarFormLibro();
     return;
   }
   
   if (tituloNuevo.length < 3) {
     mostrarMensaje('El título debe tener al menos 3 caracteres', 'error');
+    limpiarFormLibro();
     return;
   }
   
@@ -243,6 +264,7 @@ async function guardarLibro(e) {
     const existe = await validarAutorExiste(autor);
     if (!existe) {
       mostrarMensaje(`El autor "${autor}" no existe en el sistema`, 'error');
+      limpiarFormLibro();
       return;
     }
   }
@@ -265,9 +287,11 @@ async function guardarLibro(e) {
       const error = await response.json();
       const mensajeAmigable = mapearErrorServidor(error.error || 'No se pudo guardar', 'libro');
       mostrarMensaje('Error: ' + mensajeAmigable, 'error');
+      limpiarFormLibro();
     }
   } catch (error) {
     mostrarMensaje('Error: ' + error.message, 'error');
+    limpiarFormLibro();
   }
 }
 
@@ -329,6 +353,7 @@ async function guardarEdicion(e) {
   
   if (!ISBN || !anio || !idioma || !libro_id) {
     mostrarMensaje('Todos los campos son obligatorios', 'error');
+    limpiarFormEdicion();
     return;
   }
   
@@ -337,20 +362,24 @@ async function guardarEdicion(e) {
     const response = await fetch(`${API_URL}/libros/${libro_id}`);
     if (!response.ok) {
       mostrarMensaje(`El libro "${libro_id}" no existe en el sistema`, 'error');
+      limpiarFormEdicion();
       return;
     }
   } catch {
     mostrarMensaje('Error validando el libro', 'error');
+    limpiarFormEdicion();
     return;
   }
   
   if (isNaN(parseInt(anio)) || parseInt(anio) < 1000 || parseInt(anio) > new Date().getFullYear()) {
     mostrarMensaje(`El año debe ser entre 1000 y ${new Date().getFullYear()}`, 'error');
+    limpiarFormEdicion();
     return;
   }
   
   if (idioma.length < 2) {
     mostrarMensaje('El idioma debe tener al menos 2 caracteres', 'error');
+    limpiarFormEdicion();
     return;
   }
   
@@ -372,9 +401,11 @@ async function guardarEdicion(e) {
       const error = await response.json();
       const mensajeAmigable = mapearErrorServidor(error.error || 'No se pudo guardar', 'edicion');
       mostrarMensaje('Error: ' + mensajeAmigable, 'error');
+      limpiarFormEdicion();
     }
   } catch (error) {
     mostrarMensaje('Error: ' + error.message, 'error');
+    limpiarFormEdicion();
   }
 }
 
@@ -455,11 +486,13 @@ async function guardarCopia(e) {
   
   if (!numero || !edicion_id) {
     mostrarMensaje('Todos los campos son obligatorios', 'error');
+    limpiarFormCopia();
     return;
   }
   
   if (isNaN(parseInt(numero)) || parseInt(numero) < 1) {
     mostrarMensaje('El número de copia debe ser un entero positivo', 'error');
+    limpiarFormCopia();
     return;
   }
   
@@ -467,6 +500,7 @@ async function guardarCopia(e) {
   const edicionExiste = await validarISBNExiste(edicion_id);
   if (!edicionExiste) {
     mostrarMensaje(`El ISBN "${edicion_id}" no existe en el sistema`, 'error');
+    limpiarFormCopia();
     return;
   }
   
@@ -488,9 +522,11 @@ async function guardarCopia(e) {
       const error = await response.json();
       const mensajeAmigable = mapearErrorServidor(error.error || 'No se pudo guardar', 'copia');
       mostrarMensaje('Error: ' + mensajeAmigable, 'error');
+      limpiarFormCopia();
     }
   } catch (error) {
     mostrarMensaje('Error: ' + error.message, 'error');
+    limpiarFormCopia();
   }
 }
 
@@ -564,17 +600,20 @@ async function guardarUsuario(e) {
   
   if (!rut || !nombre) {
     mostrarMensaje('Todos los campos son obligatorios', 'error');
+    limpiarFormUsuario();
     return;
   }
   
   if (nombre.length < 3) {
     mostrarMensaje('El nombre debe tener al menos 3 caracteres', 'error');
+    limpiarFormUsuario();
     return;
   }
   
   // Validar formato de RUT básico
   if (rut.length < 5) {
     mostrarMensaje('El RUT parece inválido', 'error');
+    limpiarFormUsuario();
     return;
   }
   
@@ -583,6 +622,7 @@ async function guardarUsuario(e) {
     const existe = await validarRutExiste(rut);
     if (existe) {
       mostrarMensaje('Este RUT de usuario ya existe. No se pueden repetir los mismos RUT.', 'error');
+      limpiarFormUsuario();
       return;
     }
   }
@@ -605,9 +645,11 @@ async function guardarUsuario(e) {
       const error = await response.json();
       const mensajeAmigable = mapearErrorServidor(error.error || 'No se pudo guardar', 'usuario');
       mostrarMensaje('Error: ' + mensajeAmigable, 'error');
+      limpiarFormUsuario();
     }
   } catch (error) {
     mostrarMensaje('Error: ' + error.message, 'error');
+    limpiarFormUsuario();
   }
 }
 
@@ -665,11 +707,19 @@ async function cargarPrestamos() {
       const fecha_prestamo = prestamo._id.fecha_prestamo;
       const fecha_devolucion = prestamo.fecha_devolucion || '-';
       const btnId = `prestamo-btn-${idx}`;
-      const row = `<tr><td>${usuario_id}</td><td>${usuario_nombre}</td><td>${numero}</td><td>${isbn}</td><td>${fecha_prestamo}</td><td>${fecha_devolucion}</td><td><button class="btn-delete" id="del-${btnId}" data-id='${JSON.stringify(prestamo._id)}'>Eliminar</button></td></tr>`;
+      const row = `<tr><td>${usuario_id}</td><td>${usuario_nombre}</td><td>${numero}</td><td>${isbn}</td><td>${fecha_prestamo}</td><td>${fecha_devolucion}</td><td><button class="btn-edit" id="edit-${btnId}" data-prestamo='${JSON.stringify(prestamo)}' data-id='${JSON.stringify(prestamo._id)}'>Editar</button><button class="btn-delete" id="del-${btnId}" data-id='${JSON.stringify(prestamo._id)}'>Eliminar</button></td></tr>`;
       tbody.innerHTML += row;
     });
     
-    // Agregar event listeners
+    // Agregar event listeners para editar
+    document.querySelectorAll('[id^="edit-prestamo-"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const prestamoData = btn.dataset.prestamo;
+        editarPrestamo(prestamoData);
+      });
+    });
+    
+    // Agregar event listeners para eliminar
     document.querySelectorAll('[id^="del-prestamo-"]').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.dataset.id;
@@ -683,6 +733,7 @@ async function cargarPrestamos() {
 
 async function guardarPrestamo(e) {
   e.preventDefault();
+  const prestamoIdAntiguo = document.getElementById('prestamoId').value;
   const usuario_id = document.getElementById('prestamoUsuarioId').value.trim();
   const copiaNumero = document.getElementById('prestamoCopiaNumero').value;
   const copiaEdicionId = document.getElementById('prestamoCopiaEdicionId').value.trim();
@@ -691,6 +742,7 @@ async function guardarPrestamo(e) {
   
   if (!usuario_id || !copiaNumero || !copiaEdicionId || !fecha_prestamo) {
     mostrarMensaje('Los campos obligatorios no pueden estar vacíos', 'error');
+    limpiarFormPrestamo();
     return;
   }
   
@@ -698,6 +750,7 @@ async function guardarPrestamo(e) {
   const rutExiste = await validarRutExiste(usuario_id);
   if (!rutExiste) {
     mostrarMensaje(`El RUT "${usuario_id}" no existe en el sistema`, 'error');
+    limpiarFormPrestamo();
     return;
   }
   
@@ -705,6 +758,7 @@ async function guardarPrestamo(e) {
   const isbnExiste = await validarISBNExiste(copiaEdicionId);
   if (!isbnExiste) {
     mostrarMensaje(`El ISBN "${copiaEdicionId}" no existe en el sistema`, 'error');
+    limpiarFormPrestamo();
     return;
   }
   
@@ -712,51 +766,90 @@ async function guardarPrestamo(e) {
   const copiaExiste = await validarCopiaExiste(copiaNumero, copiaEdicionId);
   if (!copiaExiste) {
     mostrarMensaje(`La copia número ${copiaNumero} del ISBN ${copiaEdicionId} no existe`, 'error');
+    limpiarFormPrestamo();
     return;
+  }
+  
+  // Validar que la copia no esté prestada sin devolverse (solo si es nuevo préstamo)
+  if (!prestamoIdAntiguo) {
+    const puedePrestar = await validarCopiaPuedePrestar(copiaNumero, copiaEdicionId);
+    if (!puedePrestar) {
+      mostrarMensaje(`La copia número ${copiaNumero} ya está prestada y aún no ha sido devuelta`, 'error');
+      limpiarFormPrestamo();
+      return;
+    }
   }
   
   // Validar formato de fechas
   if (!validarFecha(fecha_prestamo)) {
     mostrarMensaje('La fecha de préstamo no es válida', 'error');
+    limpiarFormPrestamo();
     return;
   }
   
   if (fecha_devolucion && !validarFecha(fecha_devolucion)) {
     mostrarMensaje('La fecha de devolución no es válida', 'error');
+    limpiarFormPrestamo();
     return;
   }
   
   // Validar que fecha de devolución sea posterior a prestamo
   if (fecha_devolucion && !validarFechasPrestamo(fecha_prestamo, fecha_devolucion)) {
     mostrarMensaje('La fecha de devolución debe ser posterior a la fecha de préstamo', 'error');
+    limpiarFormPrestamo();
     return;
   }
   
   try {
     const copia_id = { numero: parseInt(copiaNumero), edicion_id: copiaEdicionId };
+    const method = prestamoIdAntiguo ? 'PUT' : 'POST';
+    const url = prestamoIdAntiguo ? `${API_URL}/prestamos/${prestamoIdAntiguo}` : `${API_URL}/prestamos`;
     
-    const response = await fetch(`${API_URL}/prestamos`, {
-      method: 'POST',
+    const response = await fetch(url, {
+      method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ usuario_id, copia_id, fecha_prestamo, fecha_devolucion })
     });
     
     if (response.ok) {
-      mostrarMensaje('Préstamo creado correctamente', 'success');
+      mostrarMensaje(`Préstamo ${prestamoIdAntiguo ? 'actualizado' : 'creado'} correctamente`, 'success');
       limpiarFormPrestamo();
       cargarPrestamos();
     } else {
       const error = await response.json();
       const mensajeAmigable = mapearErrorServidor(error.error || 'No se pudo guardar', 'prestamo');
       mostrarMensaje('Error: ' + mensajeAmigable, 'error');
+      limpiarFormPrestamo();
     }
   } catch (error) {
     mostrarMensaje('Error: ' + error.message, 'error');
+    limpiarFormPrestamo();
+  }
+}
+
+function editarPrestamo(prestamoDataStr) {
+  try {
+    const prestamoData = typeof prestamoDataStr === 'string' ? JSON.parse(prestamoDataStr) : prestamoDataStr;
+    const usuario_id = prestamoData._id.usuario_id;
+    const copiaNumero = prestamoData._id.copia_id.numero;
+    const copiaEdicionId = prestamoData._id.copia_id.edicion_id;
+    const fecha_prestamo = prestamoData._id.fecha_prestamo;
+    const fecha_devolucion = prestamoData.fecha_devolucion || '';
+    
+    document.getElementById('prestamoId').value = JSON.stringify(prestamoData._id);
+    document.getElementById('prestamoUsuarioId').value = usuario_id;
+    document.getElementById('prestamoCopiaNumero').value = copiaNumero;
+    document.getElementById('prestamoCopiaEdicionId').value = copiaEdicionId;
+    document.getElementById('prestamoFechaPrestamo').value = fecha_prestamo;
+    document.getElementById('prestamoFechaDevolucion').value = fecha_devolucion;
+  } catch (e) {
+    mostrarMensaje('Error al cargar los datos para editar', 'error');
   }
 }
 
 function limpiarFormPrestamo() {
   document.getElementById('formPrestamo').reset();
+  document.getElementById('prestamoId').value = '';
 }
 
 async function eliminarPrestamo(idStr) {
@@ -784,17 +877,44 @@ async function eliminarPrestamo(idStr) {
 }
 
 // ==================== UTILIDADES ====================
-function mostrarMensaje(texto, tipo) {
-  const msgDiv = document.createElement('div');
-  msgDiv.className = `message ${tipo}`;
-  msgDiv.textContent = texto;
-  document.body.appendChild(msgDiv);
+function mostrarMensaje(texto, tipo = 'info') {
+  const modal = document.getElementById('modalMensaje');
+  const modalTitulo = document.getElementById('mensajeTitulo');
+  const modalTexto = document.getElementById('mensajeTexto');
   
-  // Remover después de 4 segundos
-  setTimeout(() => {
-    msgDiv.style.animation = 'slideOut 0.3s ease-out';
-    setTimeout(() => msgDiv.remove(), 300);
-  }, 4000);
+  // Definir título según tipo
+  let titulo = 'Mensaje';
+  if (tipo === 'error') titulo = '⚠️ Error';
+  else if (tipo === 'success') titulo = '✅ Éxito';
+  else if (tipo === 'info') titulo = 'ℹ️ Información';
+  
+  modalTitulo.textContent = titulo;
+  modalTexto.textContent = texto;
+  
+  // Eliminar clases de color previas
+  modal.classList.remove('error', 'success', 'info');
+  // Agregar clase del tipo actual
+  modal.classList.add(tipo);
+  modal.classList.add('show');
+  
+  // Función para cerrar el modal
+  const cerrarModal = () => {
+    modal.classList.remove('show');
+    modal.classList.remove('error', 'success', 'info');
+  };
+  
+  // Cerrar automáticamente después de 2 segundos
+  setTimeout(cerrarModal, 1500);
+  
+  // Cerrar al hacer clic fuera del modal
+  const handleClickFuera = (e) => {
+    if (e.target === modal) {
+      cerrarModal();
+      modal.removeEventListener('click', handleClickFuera);
+    }
+  };
+  
+  modal.addEventListener('click', handleClickFuera);
 }
 
 // Modal de confirmación personalizado

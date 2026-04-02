@@ -141,11 +141,11 @@
         <input type="text" id="prestamoCopiaEdicionId" placeholder="ISBN de la Edición" required>
         <div class="fecha-group">
           <label for="prestamoFechaPrestamo">📅 Fecha Préstamo</label>
-          <input type="datetime-local" id="prestamoFechaPrestamo" required>
+          <input type="date" id="prestamoFechaPrestamo" required>
         </div>
         <div class="fecha-group">
           <label for="prestamoFechaDevolucion">📅 Fecha Devolución (opcional)</label>
-          <input type="datetime-local" id="prestamoFechaDevolucion">
+          <input type="date" id="prestamoFechaDevolucion">
         </div>
         <button type="submit">Guardar Préstamo</button>
         <button type="button" onclick="limpiarFormPrestamo()">Limpiar</button>
@@ -176,6 +176,14 @@
         <button class="modal-btn-no" id="btnNo">No, Cancelar</button>
         <button class="modal-btn-si" id="btnSi">Sí, Continuar</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal de Mensaje (Error/Éxito/Info) -->
+  <div id="modalMensaje" class="modal">
+    <div class="modal-content">
+      <h3 class="modal-titulo" id="mensajeTitulo">Mensaje</h3>
+      <p class="modal-mensaje" id="mensajeTexto">Este es un mensaje</p>
     </div>
   </div>
 
