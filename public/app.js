@@ -82,6 +82,15 @@ async function validarCopiaPuedePrestar(copiaNumero, copiaEdicionId) {
   }
 }
 
+// Validar que una fecha sea válida (formato YYYY-MM-DD)
+function validarFecha(fecha) {
+  if (!fecha) return false;
+  const regex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!regex.test(fecha)) return false;
+  const date = new Date(fecha);
+  return date instanceof Date && !isNaN(date);
+}
+
 // Validar que fecha de devolución sea posterior a fecha de préstamo
 function validarFechasPrestamo(fechaPrestamo, fechaDevolucion) {
   if (!fechaDevolucion) return true; // Es opcional
