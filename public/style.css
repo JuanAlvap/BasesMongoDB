@@ -8,40 +8,95 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   min-height: 100vh;
+  padding: 0;
+  margin: 0;
+}
+
+/* ==================== NAVEGACIÓN PRINCIPAL ==================== */
+.navbar {
+  background: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 15px 30px;
+  border-bottom: 3px solid #667eea;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.navbar h1 {
+  color: #333;
+  margin-bottom: 15px;
+  text-align: center;
+  font-size: 24px;
+}
+
+.nav-buttons {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.nav-btn {
+  padding: 12px 25px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.nav-btn:hover {
+  background: #764ba2;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+.nav-btn.active {
+  background: #764ba2;
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.5);
+}
+
+/* ==================== VENTANAS PRINCIPALES ==================== */
+.main-window {
+  display: block;
+  animation: fadeIn 0.3s;
   padding: 20px;
 }
 
-.container {
+.main-window.hidden {
+  display: none;
+}
+
+.window-container {
   max-width: 1200px;
   margin: 0 auto;
   background: white;
   border-radius: 10px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   padding: 30px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
 }
 
-h1 {
-  color: #333;
-  margin-bottom: 30px;
-  text-align: center;
-}
-
-h2 {
+.window-container h2 {
   color: #667eea;
   margin-bottom: 20px;
   border-bottom: 2px solid #667eea;
   padding-bottom: 10px;
 }
 
-.tabs {
+/* ==================== SUBNAVEGACIÓN ==================== */
+.subnavbar {
   display: flex;
   gap: 10px;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
   flex-wrap: wrap;
   border-bottom: 2px solid #eee;
 }
 
-.tab-btn {
+.subtab-btn {
   padding: 10px 20px;
   background: #f0f0f0;
   border: none;
@@ -51,105 +106,50 @@ h2 {
   transition: all 0.3s;
 }
 
-.tab-btn:hover {
+.subtab-btn:hover {
   background: #e0e0e0;
 }
 
-.tab-btn.active {
+.subtab-btn.active {
   background: #667eea;
   color: white;
 }
 
-.tab-content {
+.subtab-content {
   display: none;
   animation: fadeIn 0.3s;
 }
 
-.tab-content.active {
+.subtab-content.active {
   display: block;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.subtab-content.hidden {
+  display: none;
 }
 
-form {
-  background: #f9f9f9;
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 30px;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 15px;
-}
-
-input[type="text"],
-input[type="number"],
-input[type="datetime-local"] {
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 14px;
-}
-
-input[type="text"]:focus,
-input[type="number"]:focus,
-input[type="datetime-local"]:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
-}
-
-/* Mejorar visualización de campos datetime-local */
-input[type="datetime-local"] {
-  position: relative;
-  color: #333;
-}
-
-input[type="datetime-local"]::placeholder {
-  color: #999;
-  opacity: 1;
-}
-
-input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-  cursor: pointer;
-  border-radius: 4px;
-  margin-right: 2px;
-  opacity: 0.6;
-  filter: invert(0.8);
-}
-
-input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
-  opacity: 1;
-}
-
-button[type="submit"],
-button[type="button"] {
+/* ==================== BOTÓN DE MENÚ ==================== */
+.btn-menu {
   padding: 10px 20px;
-  background: #667eea;
+  background: #4CAF50;
   color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
-  transition: background 0.3s;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.3s;
+  margin-bottom: 20px;
 }
 
-button[type="submit"]:hover,
-button[type="button"]:hover {
-  background: #764ba2;
+.btn-menu:hover {
+  background: #45a049;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
 }
 
-button[type="button"] {
-  background: #999;
-}
-
-button[type="button"]:hover {
-  background: #777;
-}
-
-table {
+/* ==================== TABLAS ==================== */
+.data-table {
   width: 100%;
   border-collapse: collapse;
   background: white;
@@ -158,121 +158,94 @@ table {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-table thead {
+.data-table thead {
   background: #667eea;
   color: white;
 }
 
-table th {
+.data-table th {
   padding: 15px;
   text-align: left;
   font-weight: 600;
 }
 
-table td {
+.data-table td {
   padding: 12px 15px;
   border-bottom: 1px solid #eee;
 }
 
-table tbody tr:hover {
+.data-table tbody tr:hover {
   background: #f5f5f5;
 }
 
-.btn-edit,
-.btn-delete {
-  padding: 5px 10px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.2s;
-  margin-right: 5px;
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-.btn-edit {
-  background: #4CAF50;
-  color: white;
-}
 
-.btn-edit:hover {
-  background: #45a049;
-}
-
-.btn-delete {
-  background: #f44336;
-  color: white;
-}
-
-.btn-delete:hover {
-  background: #da190b;
-}
-
-.message {
-  padding: 15px;
-  margin: 10px 0;
-  border-radius: 5px;
-  animation: slideIn 0.3s;
+/* ==================== MENÚ CONTEXTUAL ==================== */
+.menu-context {
   position: fixed;
-  top: 20px;
-  left: 20px;
-  z-index: 1000;
-  min-width: 300px;
-}
-
-.message.success {
-  background: #4CAF50;
-  color: white;
-}
-
-.message.error {
-  background: #f44336;
-  color: white;
-}
-
-@keyframes slideIn {
-  from { transform: translateY(-20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-@keyframes slideOut {
-  from { transform: translateY(0); opacity: 1; }
-  to { transform: translateY(-20px); opacity: 0; }
-}
-
-@media (max-width: 768px) {
-  .tabs {
-    flex-direction: column;
-  }
-
-  form {
-    grid-template-columns: 1fr;
-  }
-
-  table {
-    font-size: 12px;
-  }
-
-  table th, table td {
-    padding: 8px 10px;
-  }
-}
-
-.fecha-group {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.fecha-group label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #667eea;
-  letter-spacing: 0.3px;
-}
-
-/* ==================== MODAL DE CONFIRMACIÓN ==================== */
-.modal {
+  background: white;
+  border: 2px solid #667eea;
+  border-radius: 8px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+  z-index: 500;
+  min-width: 150px;
   display: none;
+  flex-direction: column;
+  animation: slideDown 0.2s ease-out;
+}
+
+.menu-context.hidden {
+  display: none;
+}
+
+.menu-context.show {
+  display: flex;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.menu-option {
+  padding: 12px 20px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+  text-align: left;
+  color: #333;
+}
+
+.menu-option:hover {
+  background: #f0f0f0;
+  color: #667eea;
+  font-weight: 600;
+}
+
+.menu-option:first-child {
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+}
+
+.menu-option:last-child {
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
+
+/* ==================== MODALES ==================== */
+.modal {
   position: fixed;
   z-index: 2000;
   left: 0;
@@ -280,7 +253,14 @@ table tbody tr:hover {
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
   animation: fadeInModal 0.3s ease-out;
+}
+
+.modal.hidden {
+  display: none;
 }
 
 @keyframes fadeInModal {
@@ -288,21 +268,17 @@ table tbody tr:hover {
   to { opacity: 1; }
 }
 
-.modal.show {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
 .modal-content {
   background-color: white;
   border-radius: 12px;
-  padding: 30px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-  max-width: 400px;
+  max-width: 700px;
   width: 90%;
   animation: slideUpModal 0.3s ease-out;
-  text-align: center;
+  overflow: hidden;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
 }
 
 @keyframes slideUpModal {
@@ -316,112 +292,241 @@ table tbody tr:hover {
   }
 }
 
-.modal-titulo {
-  color: #333;
-  margin-bottom: 15px;
-  font-size: 20px;
-  font-weight: 600;
-}
-
-.modal-mensaje {
-  color: #666;
-  margin-bottom: 0;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.modal-botones {
+.modal-header {
+  background: #667eea;
+  color: white;
+  padding: 20px;
   display: flex;
-  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.btn-close {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
   justify-content: center;
 }
 
-.modal-btn-no,
-.modal-btn-si {
-  padding: 10px 30px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  transition: all 0.3s;
+.btn-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+}
+
+.modal-body {
+  padding: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
   flex: 1;
 }
 
-.modal-btn-no {
-  background-color: #e0e0e0;
+.modal-body label {
+  display: block;
+  margin-top: 15px;
+  margin-bottom: 8px;
+  font-weight: 600;
   color: #333;
+  font-size: 14px;
 }
 
-.modal-btn-no:hover {
-  background-color: #d0d0d0;
-  transform: translateY(-2px);
+.modal-body input[type="text"],
+.modal-body input[type="number"],
+.modal-body input[type="date"],
+.modal-body input[type="email"],
+.modal-body textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.3s;
+  box-sizing: border-box;
+  margin-bottom: 10px;
 }
 
-.modal-btn-si {
-  background-color: #f44336;
-  color: white;
+.modal-body input:focus,
+.modal-body textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
 }
 
-.modal-btn-si:hover {
-  background-color: #da190b;
-  transform: translateY(-2px);
+.modal-footer {
+  padding: 15px 20px;
+  background: #f9f9f9;
+  border-top: 1px solid #eee;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
 }
 
-.modal-btn-ok {
-  padding: 10px 40px;
+.btn {
+  padding: 10px 20px;
   border: none;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
   transition: all 0.3s;
-  width: 100%;
 }
 
-.modal-btn-ok {
-  background-color: #667eea;
+.btn-primary {
+  background: #667eea;
   color: white;
 }
 
-.modal-btn-ok:hover {
-  background-color: #764ba2;
+.btn-primary:hover {
+  background: #764ba2;
   transform: translateY(-2px);
 }
 
-/* Variantes de colores para modales */
-.modal.error .modal-titulo {
-  color: #f44336;
+.btn-secondary {
+  background: #e0e0e0;
+  color: #333;
 }
 
-.modal.error .modal-btn-ok {
-  background-color: #f44336;
+.btn-secondary:hover {
+  background: #d0d0d0;
 }
 
-.modal.error .modal-btn-ok:hover {
-  background-color: #da190b;
+.btn-danger {
+  background: #f44336;
+  color: white;
 }
 
-.modal.success .modal-titulo {
-  color: #4CAF50;
+.btn-danger:hover {
+  background: #da190b;
 }
 
-.modal.success .modal-btn-ok {
-  background-color: #4CAF50;
+.btn-close-modal {
+  background: #999;
+  color: white;
 }
 
-.modal.success .modal-btn-ok:hover {
-  background-color: #45a049;
+.btn-close-modal:hover {
+  background: #777;
 }
 
-.modal.info .modal-titulo {
-  color: #667eea;
+.btn.hidden {
+  display: none;
 }
 
-.modal.info .modal-btn-ok {
-  background-color: #667eea;
+/* ==================== MODAL DE MENSAJE ==================== */
+.modal-message {
+  position: fixed;
+  z-index: 3000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: fadeInModal 0.3s ease-out;
 }
 
-.modal.info .modal-btn-ok:hover {
-  background-color: #764ba2;
+.modal-message.hidden {
+  display: none;
+}
+
+.message-box {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  animation: slideUpModal 0.3s ease-out;
+}
+
+.message-box h3 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.message-box p {
+  margin: 0;
+  color: #666;
+  line-height: 1.5;
+}
+
+/* ==================== ESTILOS PARA FORMULARIOS EN MODALES ==================== */
+.form-group {
+  margin-bottom: 18px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 600;
+  color: #333;
+  font-size: 15px;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.3s;
+  box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+}
+
+/* ==================== RESPONSIVE ==================== */
+@media (max-width: 768px) {
+  .nav-buttons {
+    flex-direction: column;
+  }
+
+  .nav-btn {
+    width: 100%;
+  }
+
+  .window-container {
+    padding: 15px;
+  }
+
+  .data-table {
+    font-size: 12px;
+  }
+
+  .data-table th, .data-table td {
+    padding: 8px 10px;
+  }
+
+  .modal-content {
+    max-width: 90%;
+  }
+
+  .modal-footer {
+    flex-direction: column;
+  }
+
+  .btn {
+    width: 100%;
+  }
 }

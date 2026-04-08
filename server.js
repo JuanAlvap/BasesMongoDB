@@ -19,6 +19,7 @@ app.use('/api/ediciones', require('./routes/ediciones'));
 app.use('/api/copias', require('./routes/copias'));
 app.use('/api/usuarios', require('./routes/usuarios'));
 app.use('/api/prestamos', require('./routes/prestamos'));
+app.use('/api/consultas', require('./routes/consultas'));
 
 // Servir index.html en raíz
 app.get('/', (req, res) => {

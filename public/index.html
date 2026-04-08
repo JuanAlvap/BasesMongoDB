@@ -3,187 +3,278 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema de Gestión de Biblioteca</title>
+  <title>Sistema de Biblioteca - CRUD</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
+  <!-- ==================== NAVEGACIÓN PRINCIPAL ==================== -->
+  <nav class="navbar">
     <h1>📚 Sistema de Gestión de Biblioteca</h1>
-    
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="autores">Autores</button>
-      <button class="tab-btn" data-tab="libros">Libros</button>
-      <button class="tab-btn" data-tab="ediciones">Ediciones</button>
-      <button class="tab-btn" data-tab="copias">Copias</button>
-      <button class="tab-btn" data-tab="usuarios">Usuarios</button>
-      <button class="tab-btn" data-tab="prestamos">Préstamos</button>
+    <div class="nav-buttons">
+      <button class="nav-btn" data-window="libros">📖 Libros, Autores, Ediciones y Copias</button>
+      <button class="nav-btn" data-window="usuarios">👤 Usuarios</button>
+      <button class="nav-btn" data-window="prestamos">🏷️ Préstamos</button>
+      <button class="nav-btn" data-window="consultas">📊 Consultas</button>
     </div>
+  </nav>
 
-    <!-- TAB: AUTORES -->
-    <div id="autores" class="tab-content active">
-      <h2>Gestión de Autores</h2>
-      <form id="formAutor">
-        <input type="hidden" id="autorId">
-        <input type="text" id="autorNombre" placeholder="Nombre del autor" required>
-        <button type="submit">Guardar Autor</button>
-        <button type="button" onclick="limpiarFormAutor()">Limpiar</button>
-      </form>
-      <table id="tablAutores">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+  <!-- ==================== VENTANA 1: LIBROS ==================== -->
+  <div id="window-libros" class="main-window">
+    <div class="window-container">
+      <h2>Libros, Autores, Ediciones y Copias</h2>
+      
+      <!-- Subnavegación -->
+      <div class="subnavbar">
+        <button class="subtab-btn active" data-subtab="autores">Autores</button>
+        <button class="subtab-btn" data-subtab="libros">Libros</button>
+        <button class="subtab-btn" data-subtab="ediciones">Ediciones</button>
+        <button class="subtab-btn" data-subtab="copias">Copias</button>
+      </div>
 
-    <!-- TAB: LIBROS -->
-    <div id="libros" class="tab-content">
-      <h2>Gestión de Libros</h2>
-      <form id="formLibro">
-        <input type="hidden" id="libroId">
-        <input type="text" id="libroTitulo" placeholder="Título del libro" required>
-        <input type="text" id="libroAutores" placeholder="Nombres de autores (separados por comas)">
-        <button type="submit">Guardar Libro</button>
-        <button type="button" onclick="limpiarFormLibro()">Limpiar</button>
-      </form>
-      <table id="tablLibros">
-        <thead>
-          <tr>
-            <th>Título</th>
-            <th>Autores</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+      <!-- Botón CRUD -->
+      <button id="btnMenuLibros" class="btn-menu">⚙️ CRUD</button>
 
-    <!-- TAB: EDICIONES -->
-    <div id="ediciones" class="tab-content">
-      <h2>Gestión de Ediciones</h2>
-      <form id="formEdicion">
-        <input type="hidden" id="edicionId">
-        <input type="text" id="edicionISBN" placeholder="ISBN" required>
-        <input type="number" id="edicionAño" placeholder="Año" required>
-        <input type="text" id="edicionIdioma" placeholder="Idioma" required>
-        <input type="text" id="edicionLibroId" placeholder="Titulo del Libro" required>
-        <button type="submit">Guardar Edición</button>
-        <button type="button" onclick="limpiarFormEdicion()">Limpiar</button>
-      </form>
-      <table id="tablEdiciones">
-        <thead>
-          <tr>
-            <th>ISBN</th>
-            <th>Año</th>
-            <th>Idioma</th>
-            <th>Libro</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+      <!-- Tabla Autores -->
+      <div id="subtab-autores" class="subtab-content active">
+        <h3>Autores</h3>
+        <table id="tablaAutores" class="data-table">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
 
-    <!-- TAB: COPIAS -->
-    <div id="copias" class="tab-content">
-      <h2>Gestión de Copias</h2>
-      <form id="formCopia">
-        <input type="hidden" id="copiaId">
-        <input type="number" id="copiaNumero" placeholder="Número de copia" required>
-        <input type="text" id="copiaEdicionId" placeholder="ISBN de la Edición" required>
-        <button type="submit">Guardar Copia</button>
-        <button type="button" onclick="limpiarFormCopia()">Limpiar</button>
-      </form>
-      <table id="tablCopias">
-        <thead>
-          <tr>
-            <th>Número</th>
-            <th>Edición</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+      <!-- Tabla Libros -->
+      <div id="subtab-libros" class="subtab-content hidden">
+        <h3>Libros</h3>
+        <table id="tablaLibros" class="data-table">
+          <thead>
+            <tr>
+              <th>Título</th>
+              <th>Autores</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
 
-    <!-- TAB: USUARIOS -->
-    <div id="usuarios" class="tab-content">
-      <h2>Gestión de Usuarios</h2>
-      <form id="formUsuario">
-        <input type="hidden" id="usuarioId">
-        <input type="text" id="usuarioRUT" placeholder="RUT (ej: 12345678)" required>
-        <input type="text" id="usuarioNombre" placeholder="Nombre del usuario" required>
-        <button type="submit">Guardar Usuario</button>
-        <button type="button" onclick="limpiarFormUsuario()">Limpiar</button>
-      </form>
-      <table id="tablUsuarios">
-        <thead>
-          <tr>
-            <th>RUT</th>
-            <th>Nombre</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+      <!-- Tabla Ediciones -->
+      <div id="subtab-ediciones" class="subtab-content hidden">
+        <h3>Ediciones</h3>
+        <table id="tablaEdiciones" class="data-table">
+          <thead>
+            <tr>
+              <th>ISBN</th>
+              <th>Año</th>
+              <th>Idioma</th>
+              <th>Libro</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
 
-    <!-- TAB: PRÉSTAMOS -->
-    <div id="prestamos" class="tab-content">
-      <h2>Gestión de Préstamos</h2>
-      <form id="formPrestamo">
-        <input type="hidden" id="prestamoId">
-        <input type="text" id="prestamoUsuarioId" placeholder="RUT del Usuario" required>
-        <input type="text" id="prestamoCopiaNumero" placeholder="Número de la Copia" required>
-        <input type="text" id="prestamoCopiaEdicionId" placeholder="ISBN de la Edición" required>
-        <div class="fecha-group">
-          <label for="prestamoFechaPrestamo">📅 Fecha Préstamo</label>
-          <input type="date" id="prestamoFechaPrestamo" required>
-        </div>
-        <div class="fecha-group">
-          <label for="prestamoFechaDevolucion">📅 Fecha Devolución (opcional)</label>
-          <input type="date" id="prestamoFechaDevolucion">
-        </div>
-        <button type="submit">Guardar Préstamo</button>
-        <button type="button" onclick="limpiarFormPrestamo()">Limpiar</button>
-      </form>
-      <table id="tablPrestamos">
-        <thead>
-          <tr>
-            <th>RUT</th>
-            <th>Usuario</th>
-            <th>Número de Copia</th>
-            <th>ISBN</th>
-            <th>Fecha Préstamo</th>
-            <th>Fecha Devolución</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- Modal de Confirmación -->
-  <div id="modalConfirm" class="modal">
-    <div class="modal-content">
-      <h3 class="modal-titulo">Confirmar Acción</h3>
-      <p class="modal-mensaje">¿Está seguro de que desea continuar?</p>
-      <div class="modal-botones">
-        <button class="modal-btn-no" id="btnNo">No, Cancelar</button>
-        <button class="modal-btn-si" id="btnSi">Sí, Continuar</button>
+      <!-- Tabla Copias -->
+      <div id="subtab-copias" class="subtab-content hidden">
+        <h3>Copias</h3>
+        <table id="tablaCopias" class="data-table">
+          <thead>
+            <tr>
+              <th>Número</th>
+              <th>Edición</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
       </div>
     </div>
   </div>
 
-  <!-- Modal de Mensaje (Error/Éxito/Info) -->
-  <div id="modalMensaje" class="modal">
+  <!-- ==================== VENTANA 2: USUARIOS ==================== -->
+  <div id="window-usuarios" class="main-window hidden">
+    <div class="window-container">
+      <h2>Usuarios</h2>
+      <button id="btnMenuUsuarios" class="btn-menu">⚙️ CRUD</button>
+      <table id="tablaUsuarios" class="data-table">
+        <thead>
+          <tr>
+            <th>RUT</th>
+            <th>Nombre</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== VENTANA 3: PRÉSTAMOS ==================== -->
+  <div id="window-prestamos" class="main-window hidden">
+    <div class="window-container">
+      <h2>Préstamos</h2>
+      <button id="btnMenuPrestamos" class="btn-menu">⚙️ CRUD</button>
+      <table id="tablaPrestamos" class="data-table">
+        <thead>
+          <tr>
+            <th>RUT</th>
+            <th>Usuario</th>
+            <th>Número Copia</th>
+            <th>ISBN</th>
+            <th>Fecha Préstamo</th>
+            <th>Fecha Devolución</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== VENTANA 4: CONSULTAS ==================== -->
+  <div id="window-consultas" class="main-window hidden">
+    <div class="window-container">
+      <h2>Consultas</h2>
+      
+      <!-- Subnavegación -->
+      <div class="subnavbar">
+        <button class="subtab-btn active" data-subtab="consulta1">📋 Listado de Copias</button>
+        <button class="subtab-btn" data-subtab="consulta2">📚 Libros Prestados</button>
+      </div>
+
+      <!-- CONSULTA 1: Listado de Copias -->
+      <div id="subtab-consulta1" class="subtab-content active">
+        <h3>Consulta 1: Copias de Libros Disponibles</h3>
+        <table id="tablaConsulta1" class="data-table">
+          <thead>
+            <tr>
+              <th>Autor</th>
+              <th>Libro</th>
+              <th>ISBN (Edición)</th>
+              <th>Año</th>
+              <th>Idioma</th>
+              <th>Número Copia</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <!-- CONSULTA 2: Libros Prestados por Usuario -->
+      <div id="subtab-consulta2" class="subtab-content hidden">
+        <h3>Consulta 2: Libros Prestados por Usuario</h3>
+        <div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: flex-end;">
+          <div style="flex: 1;">
+            <label for="inputRutBusca" style="display: block; margin-bottom: 10px; font-weight: 600;">Ingresa el RUT del usuario:</label>
+            <input type="text" id="inputRutBusca" placeholder="Ej: 11223344" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+          </div>
+          <button id="btnBuscarUsuarioPrestamos" class="btn btn-primary" style="padding: 12px 24px; height: fit-content;">Buscar</button>
+        </div>
+        
+        <!-- Área de información del usuario -->
+        <div id="infoPrestamosUsuario" class="hidden" style="margin-bottom: 20px; padding: 15px; background: #f0f8ff; border-left: 4px solid #667eea; border-radius: 6px;">
+          <h4 id="nombreUsuarioPrestamos" style="margin: 0 0 5px 0; color: #333;"></h4>
+          <p id="mensajePrestamos" style="margin: 0; color: #666; font-size: 14px;"></p>
+        </div>
+
+        <table id="tablaConsulta2" class="data-table">
+          <thead>
+            <tr>
+              <th>Usuario (RUT)</th>
+              <th>Autor</th>
+              <th>Libro</th>
+              <th>ISBN</th>
+              <th>Número Copia</th>
+              <th>Fecha Préstamo</th>
+              <th>Fecha Devolución</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MENÚ CONTEXTUAL ==================== -->
+  <div id="menuContexto" class="menu-context hidden">
+    <button id="menuOpcionInsertar" class="menu-option">+ Insertar</button>
+    <button id="menuOpcionEditar" class="menu-option">✏️ Editar</button>
+    <button id="menuOpcionEliminar" class="menu-option">🗑️ Eliminar</button>
+  </div>
+
+  <!-- ==================== MODAL INSERTAR ==================== -->
+  <div id="modalInsertar" class="modal hidden">
     <div class="modal-content">
-      <h3 class="modal-titulo" id="mensajeTitulo">Mensaje</h3>
-      <p class="modal-mensaje" id="mensajeTexto">Este es un mensaje</p>
+      <div class="modal-header">
+        <h3 id="modalInsertarTitulo">Insertar Nuevo Registro</h3>
+        <button class="btn-close">&times;</button>
+      </div>
+      <div id="modalInsertarBody" class="modal-body">
+        <!-- Se llena dinámicamente -->
+      </div>
+      <div class="modal-footer">
+        <button id="btnGuardarInsertar" class="btn btn-primary" onclick="guardarInsertar()">Guardar</button>
+        <button class="btn btn-secondary btn-close-modal">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL EDITAR ==================== -->
+  <div id="modalEditar" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalEditarTitulo">Editar Registro</h3>
+        <button class="btn-close">&times;</button>
+      </div>
+      <div id="buscarEditarContainer" class="modal-body">
+        <!-- Se llena dinámicamente con el formulario de búsqueda -->
+      </div>
+      <div id="formEditarContainer" class="hidden">
+        <!-- Se llena dinámicamente después de buscar -->
+      </div>
+      <div class="modal-footer">
+        <button id="btnGuardarEditar" class="btn btn-primary hidden" onclick="guardarEditar()">Actualizar</button>
+        <button class="btn btn-secondary btn-close-modal">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL ELIMINAR ==================== -->
+  <div id="modalEliminar" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalEliminarTitulo">Eliminar Registro</h3>
+        <button class="btn-close">&times;</button>
+      </div>
+      <div id="buscarEliminarContainer" class="modal-body">
+        <!-- Se llena dinámicamente con el formulario de búsqueda -->
+      </div>
+      <p id="mensajeConfirmacion" class="hidden" style="margin-top: 10px; color: #d32f2f; margin-left: 20px; margin-right: 20px;"></p>
+      <div class="modal-footer">
+        <button id="btnConfirmarEliminar" class="btn btn-danger" onclick="confirmarEliminar()">Eliminar</button>
+        <button class="btn btn-secondary btn-close-modal">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL MENSAJE ==================== -->
+  <div id="modalMensaje" class="modal-message hidden">
+    <div class="message-box">
+      <h3 id="mensajeTitulo">Mensaje</h3>
+      <p id="mensajeTexto"></p>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL CONFIRMACIÓN ==================== -->
+  <div id="modalConfirm" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-body">
+        <p id="confirmTexto"></p>
+      </div>
+      <div class="modal-footer">
+        <button id="btnConfirm" class="btn btn-primary">Sí</button>
+        <button id="btnNoConfirm" class="btn btn-secondary">No</button>
+      </div>
     </div>
   </div>
 
