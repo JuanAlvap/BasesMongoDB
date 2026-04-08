@@ -1,19 +1,32 @@
+// ============================================
+// SISTEMA DE GESTIÓN DE BIBLIOTECA - FRONTEND
+// ============================================
+// Este archivo controla toda la lógica del lado cliente
+// Maneja navegación, formularios CRUD, búsquedas y consultas
+
 const API_URL = `${window.location.origin}/api`;
 
-// Estado global
-let currentWindow = 'libros';
-let currentSubtab = 'autores';
-let currentEntity = 'autores';
+// ==================== ESTADO GLOBAL ====================
+// Estas variables cuentan qué sección está activa en la interfaz
+let currentWindow = 'libros';      // Ventana principal activa (libros, usuarios, prestamos, consultas)
+let currentSubtab = 'autores';     // Subtab activa (para Libros: autores/libros/ediciones/copias, para Consultas: consulta1/consulta2)
+let currentEntity = 'autores';     // Entidad actual con la que se está trabajando
 
 // ==================== INICIALIZACIÓN ====================
+// Se ejecuta cuando la página HTML está completamente cargada
 document.addEventListener('DOMContentLoaded', () => {
-  setupNavigation();
-  setupSubtabs();
-  setupMenuButtons();
-  setupModals();
-  cargarDatos('autores');
+  setupNavigation();      // Configurar botones principales (Libros, Usuarios, etc)
+  setupSubtabs();         // Configurar subtabs (Autores, Libros, etc)
+  setupMenuButtons();     // Configurar botones CRUD (Insertar, Editar, Eliminar)
+  setupModals();          // Configurar ventanas modales (Pop-ups)
+  cargarDatos('autores'); // Cargar datos iniciales
 });
 
+// ==================== NAVEGACIÓN PRINCIPAL ====================
+/**
+ * Configura los botones de navegación principal
+ * Añade event listeners a los botones: Libros, Usuarios, Préstamos, Consultas
+ */
 function setupNavigation() {
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -22,26 +35,31 @@ function setupNavigation() {
     });
   });
   
-  // Mostrar la primera ventana por defecto
+  // Mostrar la primera ventana (Libros) por defecto
   switchWindow('libros');
 }
 
+/**
+ * Cambia la ventana principal visible
+ * @param {string} window - La ventana a mostrar: 'libros', 'usuarios', 'prestamos', 'consultas'
+ */
 function switchWindow(window) {
   // Limpiar consulta 2 si estamos saliendo de la ventana de consultas
+  // Esto evita que los datos de búsqueda anterior se muestren
   if (currentWindow === 'consultas') {
     limpiarConsulta2();
   }
   
-  // Ocultar todas las ventanas
+  // Ocultar todas las ventanas principales
   document.querySelectorAll('.main-window').forEach(w => {
     w.classList.add('hidden');
   });
   
-  // Mostrar ventana seleccionada
+  // Mostrar la ventana seleccionada
   document.getElementById(`window-${window}`).classList.remove('hidden');
   currentWindow = window;
   
-  // Actualizar botones de navegación
+  // Actualizar visual de botones: marcar como activo el botón seleccionado
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.classList.remove('active');
     if (btn.getAttribute('data-window') === window) {
@@ -49,7 +67,7 @@ function switchWindow(window) {
     }
   });
   
-  // Cargar datos según la ventana seleccionada
+  // Cargar datos específicos según la ventana
   if (window === 'usuarios') {
     cargarDatos('usuarios');
   } else if (window === 'prestamos') {
@@ -57,16 +75,17 @@ function switchWindow(window) {
   } else if (window === 'consultas') {
     // Limpiar consulta 2 al entrar a la ventana de consultas
     limpiarConsulta2();
-    // Resetear a consulta 1 por defecto
+    // Resetear a consulta 1 por defecto (mostrar listado de copias disponibles)
     currentSubtab = 'consulta1';
-    // Mostrar consulta 1 subtab
+    // Ocultar todas las subconsultas
     document.querySelectorAll('.subtab-content').forEach(content => {
       content.classList.remove('active');
       content.classList.add('hidden');
     });
+    // Mostrar consulta 1
     document.getElementById('subtab-consulta1').classList.remove('hidden');
     document.getElementById('subtab-consulta1').classList.add('active');
-    // Actualizar botones de subtab
+    // Actualizar botones de subtab para marcar consulta 1 como activa
     document.querySelectorAll('.subtab-btn').forEach(btn => {
       btn.classList.remove('active');
       if (btn.getAttribute('data-subtab') === 'consulta1') {
@@ -80,6 +99,10 @@ function switchWindow(window) {
   }
 }
 
+/**
+ * Configura los botones de subtabs
+ * Son las pestañitas dentro de cada sección principal (ej: Autores, Libros, Ediciones, Copias)
+ */
 function setupSubtabs() {
   document.querySelectorAll('.subtab-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -89,11 +112,16 @@ function setupSubtabs() {
   });
 }
 
+/**
+ * Cambia el subtab visible (solo funciona en secciones Libros y Consultas)
+ * @param {string} subtab - El subtab a mostrar
+ */
 function switchSubtab(subtab) {
-  // Funciona en ventana de libros y consultas
+  // Solo permite cambiar subtabs en las secciones Libros y Consultas
   if (currentWindow !== 'libros' && currentWindow !== 'consultas') return;
   
   // Limpiar consulta 2 si estamos saliendo de ella
+  // Esto previene que datos de búsquedas anteriores sigan visibles
   if (currentWindow === 'consultas' && currentSubtab === 'consulta2' && subtab !== 'consulta2') {
     limpiarConsulta2();
   }
@@ -108,7 +136,7 @@ function switchSubtab(subtab) {
   document.getElementById(`subtab-${subtab}`).classList.remove('hidden');
   document.getElementById(`subtab-${subtab}`).classList.add('active');
   
-  // Actualizar botones
+  // Actualizar botones de subtab para marcar el actual como activo
   document.querySelectorAll('.subtab-btn').forEach(btn => {
     btn.classList.remove('active');
     if (btn.getAttribute('data-subtab') === subtab) {
@@ -118,20 +146,26 @@ function switchSubtab(subtab) {
   
   currentSubtab = subtab;
   
-  // Si es consulta, cargar los datos correspondientes
+  // Si es una consulta, cargar los datos correspondientes
   if (currentWindow === 'consultas') {
     if (subtab === 'consulta1') {
-      cargarConsulta1();
+      cargarConsulta1();  // Cargar listado de copias disponibles
     } else if (subtab === 'consulta2') {
-      // Limpiar formulario cuando se abre consulta 2
+      // Limpiar formulario cuando se abre consulta 2 para que no haya datos antiguos
       limpiarConsulta2();
     }
   } else {
+    // Si es Libros, actualizar la entidad actual y cargar datos
     currentEntity = subtab;
     cargarDatos(subtab);
   }
 }
 
+// ==================== MENÚ CONTEXTUAL ====================
+/**
+ * Configura los botones "⚙️ CRUD" en cada sección
+ * Estos botones abren un menú con opciones: Insertar, Editar, Eliminar
+ */
 function setupMenuButtons() {
   document.getElementById('btnMenuLibros').addEventListener('click', (e) => {
     mostrarMenu(e, 'libros');
@@ -146,29 +180,42 @@ function setupMenuButtons() {
   });
 }
 
+/**
+ * Muestra el menú contextual con opciones CRUD
+ * @param {Event} e - Evento del clic
+ * @param {string} window - La ventana donde se abrió el menú
+ */
 function mostrarMenu(e, window) {
   const menu = document.getElementById('menuContexto');
   const rect = e.target.getBoundingClientRect();
   
-  // Determinar la entidad actual
+  // Determinar cuál es la entidad actual (Autores, Libros, Ediciones, Copias, Usuarios, Préstamos)
   if (window === 'libros') {
-    currentEntity = currentSubtab;
+    currentEntity = currentSubtab;  // Usar el subtab actual (autores, libros, etc)
   } else if (window === 'usuarios') {
     currentEntity = 'usuarios';
   } else if (window === 'prestamos') {
     currentEntity = 'prestamos';
   }
   
-  // Posicionar menú
+  // Posicionar el menú debajo del botón que presionó el usuario
   menu.style.top = (rect.bottom + 5) + 'px';
   menu.style.left = rect.left + 'px';
   menu.classList.remove('hidden');
   menu.classList.add('show');
   
-  // Cerrar menú al hacer clic afuera
+  // Cerrar menú al hacer clic en otro lado de la página
   document.addEventListener('click', cerrarMenuAfuera);
 }
 
+/**
+ * Cierra el menú contextual cuando se hace clic fuera de él
+ */
+/**
+ * Cierra el menú contextual (menú CRUD) cuando se hace clic fuera de él
+ * Es un event listener que se ejecuta cuando el usuario hace clic en cualquier parte de la página
+ * Si hace clic fuera del menú o de los botones del menú, cierra el menú
+ */
 function cerrarMenuAfuera(e) {
   const menu = document.getElementById('menuContexto');
   if (!e.target.closest('.btn-menu') && !e.target.closest('.menu-context')) {
@@ -178,42 +225,56 @@ function cerrarMenuAfuera(e) {
   }
 }
 
+// ==================== MODALES (VENTANAS EMERGENTES) ====================
+/**
+ * Configura los event listeners para los modales
+ * Los modales son las ventanas emergentes para Insertar, Editar, Eliminar
+ */
 function setupModals() {
-  // Opciones del menú
+  // Opciones del menú contextual
   document.getElementById('menuOpcionInsertar').addEventListener('click', () => {
     document.getElementById('menuContexto').classList.add('hidden');
-    abrirModalInsertar();
+    abrirModalInsertar();  // Abrir ventana para insertar un nuevo registro
   });
   
   document.getElementById('menuOpcionEditar').addEventListener('click', () => {
     document.getElementById('menuContexto').classList.add('hidden');
-    abrirModalEditar();
+    abrirModalEditar();    // Abrir ventana para buscar y editar un registro
   });
   
   document.getElementById('menuOpcionEliminar').addEventListener('click', () => {
     document.getElementById('menuContexto').classList.add('hidden');
-    abrirModalEliminar();
+    abrirModalEliminar();  // Abrir ventana para buscar y eliminar un registro
   });
   
-  // Cerrar botones
+  // Botones para cerrar modales
   document.querySelectorAll('.btn-close, .btn-close-modal').forEach(btn => {
     btn.addEventListener('click', cerrarTodosModales);
   });
-  
-  // Botones de acción (usando onclick en HTML ahora, no addEventListener)
 }
 
 // ==================== VALIDACIONES ====================
+/**
+ * Valida que una fecha tenga el formato correcto (YYYY-MM-DD)
+ * @param {string} fecha - La fecha a validar
+ * @returns {boolean} true si es válida, false si no
+ */
 function validarFecha(fecha) {
   if (!fecha) return false;
-  const regex = /^\d{4}-\d{2}-\d{2}$/;
+  const regex = /^\d{4}-\d{2}-\d{2}$/;  // Formato: 2026-04-08
   if (!regex.test(fecha)) return false;
   const date = new Date(fecha);
-  return date instanceof Date && !isNaN(date);
+  return date instanceof Date && !isNaN(date);  // Verificar que sea una fecha válida
 }
 
+/**
+ * Valida que la fecha de devolución sea posterior a la de préstamo
+ * @param {string} fechaPrestamo - Fecha de inicio del préstamo
+ * @param {string} fechaDevolucion - Fecha de devolución del préstamo
+ * @returns {boolean} true si fechaDevolucion > fechaPrestamo
+ */
 function validarFechasPrestamo(fechaPrestamo, fechaDevolucion) {
-  if (!fechaDevolucion) return true;
+  if (!fechaDevolucion) return true;  // Si no hay fecha de devolución, es válido (préstamo pendiente)
   const prestamo = new Date(fechaPrestamo);
   const devolucion = new Date(fechaDevolucion);
   return devolucion > prestamo;
@@ -275,23 +336,37 @@ async function validarCopiaPuedePrestar(copiaNumero, copiaEdicionId) {
 }
 
 // ==================== CARGAR DATOS ====================
+/**
+ * Carga los datos de una entidad desde la API y los muestra en la tabla
+ * @param {string} entity - La entidad a cargar: 'autores', 'libros', 'ediciones', 'copias', 'usuarios', 'prestamos'
+ */
 async function cargarDatos(entity) {
   try {
+    // Construir URL de la API
     let url = `${API_URL}/${getUrlEntity(entity)}`;
+    
+    // Hacer petición GET a la API
     const response = await fetch(url);
     let data = await response.json();
     
-    // Enriquecer datos de préstamos con nombres de usuarios
+    // Si es préstamos, añadir el nombre del usuario a cada uno (enriquecimiento de datos)
     if (entity === 'prestamos') {
       data = await enriquecerPrestamosConUsuarios(data);
     }
     
+    // Mostrar los datos en la tabla correspondiente
     mostrarTabla(entity, data);
   } catch (error) {
+    // Mostrar mensaje de error si algo falla
     mostrarMensaje(`Error al cargar ${entity}`, 'error');
   }
 }
 
+/**
+ * Mapea los nombres de entidades a las URLs de la API
+ * @param {string} entity - Nombre de la entidad
+ * @returns {string} URL correcta para la API
+ */
 function getUrlEntity(entity) {
   const map = {
     'autores': 'autores',
@@ -304,7 +379,12 @@ function getUrlEntity(entity) {
   return map[entity] || entity;
 }
 
-// Obtener texto personalizado para búsquedas
+/**
+ * Retorna el texto personalizado para el campo de búsqueda de cada entidad
+ * Estos textos se muestran como placeholders o etiquetas
+ * @param {string} entity - La entidad
+ * @returns {string} Texto personalizado para búsqueda
+ */
 function obtenerTextoPersonalizado(entity) {
   const textos = {
     'autores': 'Buscar por nombre del autor',
@@ -317,46 +397,66 @@ function obtenerTextoPersonalizado(entity) {
   return textos[entity] || 'Buscar por clave primaria';
 }
 
-// Enriquecer datos de préstamos con nombre del usuario
+/**
+ * Enriquece los datos de préstamos añadiendo el nombre del usuario
+ * Esto es necesario porque en la BD se guarda solo el ID, y necesitamos mostrar el nombre
+ * @param {Array} prestamos - Array de préstamos sin enriquecer
+ * @returns {Array} Array de préstamos con nombre de usuario incluido
+ */
 async function enriquecerPrestamosConUsuarios(prestamos) {
   try {
+    // Cargar todos los usuarios desde la API
     const response = await fetch(`${API_URL}/usuarios`);
     const usuarios = await response.json();
-    const usuariosMap = {};
     
+    // Crear un mapa {ID_usuario: nombre_usuario} para búsqueda rápida
+    const usuariosMap = {};
     usuarios.forEach(u => {
       usuariosMap[u._id] = u.nombre;
     });
     
+    // Para cada préstamo, encontrar el nombre del usuario y agregarlo
     return prestamos.map(p => ({
       ...p,
-      usuario_nombre: usuariosMap[p._id.usuario_id] || 'Desconocido'
+      usuario_nombre: usuariosMap[p._id.usuario_id] || 'Desconocido'  // Si no existe, poner 'Desconocido'
     }));
   } catch {
-    return prestamos;
+    return prestamos;  // Si hay error, devolver los préstamos sin enriquecer
   }
 }
 
+// ==================== MOSTRAR DATOS EN TABLA ====================
+/**
+ * Muestra los datos en la tabla HTML correspondiente
+ * Crea filas de tabla dinámicamente con los datos cargados desde la API
+ * @param {string} entity - La entidad cuyos datos se mostrarán
+ * @param {Array} data - Array de registros a mostrar
+ */
 function mostrarTabla(entity, data) {
+  // Construir el ID de la tabla (ej: "tablaAutores", "tablaLibros")
   const tableId = `tabla${entity.charAt(0).toUpperCase() + entity.slice(1)}`;
   const table = document.getElementById(tableId);
   if (!table) return;
   
   const tbody = table.querySelector('tbody');
-  tbody.innerHTML = '';
+  tbody.innerHTML = '';  // Limpiar contenido anterior
   
+  // Para cada registro, crear una fila de tabla
   data.forEach(item => {
     const row = document.createElement('tr');
     
+    // Generar contenido de la fila según la entidad
     switch(entity) {
       case 'autores':
         row.innerHTML = `<td>${item._id}</td>`;
         break;
       case 'libros':
+        // Convertir array de autores a string separado por comas
         const autores = Array.isArray(item.autor_ids) ? item.autor_ids.join(', ') : item.autor_ids;
         row.innerHTML = `<td>${item._id}</td><td>${autores}</td>`;
         break;
       case 'ediciones':
+        // Mostrar ISBN, año, idioma y libro
         row.innerHTML = `
           <td>${item._id}</td>
           <td>${item.anio}</td>
@@ -365,15 +465,18 @@ function mostrarTabla(entity, data) {
         `;
         break;
       case 'copias':
+        // Mostrar número de copia e ISBN
         row.innerHTML = `
           <td>${item._id.numero}</td>
           <td>${item._id.edicion_id}</td>
         `;
         break;
       case 'usuarios':
+        // Mostrar RUT y nombre
         row.innerHTML = `<td>${item._id}</td><td>${item.nombre}</td>`;
         break;
       case 'prestamos':
+        // Mostrar RUT, nombre usuario, número copia, ISBN, fechas
         row.innerHTML = `
           <td>${item._id.usuario_id}</td>
           <td>${item.usuario_nombre || '-'}</td>
@@ -385,22 +488,39 @@ function mostrarTabla(entity, data) {
         break;
     }
     
+    // Agregar el evento de clic para poder editar/eliminar
+    row.addEventListener('click', () => abrirMenuFila(event, entity, item));
     tbody.appendChild(row);
   });
 }
 
 // ==================== MODAL INSERTAR ====================
+// ==================== MODAL INSERTAR ====================
+/**
+ * Abre el modal (ventana emergente) para insertar un nuevo registro
+ * Genera dinámicamente el formulario según la entidad actual
+ */
 function abrirModalInsertar() {
   const modal = document.getElementById('modalInsertar');
   const body = document.getElementById('modalInsertarBody');
   const titulo = document.getElementById('modalInsertarTitulo');
   
+  // Actualizar título del modal según la entidad
   titulo.textContent = `Insertar nuevo ${currentEntity}`;
+  
+  // Generar el formulario específico para la entidad
   body.innerHTML = generarFormuarioInsertar(currentEntity);
   
+  // Mostrar el modal (remover clase 'hidden')
   modal.classList.remove('hidden');
 }
 
+/**
+ * Genera el formulario HTML para insertar un nuevo registro
+ * Cada entidad tiene un formulario diferente con sus campos específicos
+ * @param {string} entity - La entidad para la que generar el formulario
+ * @returns {string} HTML del formulario
+ */
 function generarFormuarioInsertar(entity) {
   switch(entity) {
     case 'autores':
@@ -490,13 +610,19 @@ function generarFormuarioInsertar(entity) {
   }
 }
 
+/**
+ * Guarda un nuevo registro en la base de datos
+ * Recolecta los datos del formulario, los valida y envía a la API
+ */
 async function guardarInsertar() {
   try {
     let datos = {};
     let url = `${API_URL}/${getUrlEntity(currentEntity)}`;
     
+    // Procesar datos según la entidad actual
     switch(currentEntity) {
       case 'autores':
+        // Autor: solo necesita nombre
         const nombre = document.getElementById('insertAutorNombre').value.trim();
         if (!nombre) {
           mostrarMensaje('El nombre del autor es requerido', 'error');
@@ -506,6 +632,7 @@ async function guardarInsertar() {
         break;
         
       case 'libros':
+        // Libro: título y lista de autores (separados por comas)
         const titulo = document.getElementById('insertLibroTitulo').value.trim();
         const autoresStr = document.getElementById('insertLibroAutores').value.trim();
         if (!titulo) {
@@ -514,7 +641,7 @@ async function guardarInsertar() {
         }
         const autor_ids = autoresStr ? autoresStr.split(',').map(a => a.trim()) : [];
         
-        // Validar que todos los autores existan
+        // Validar que todos los autores existan en la BD
         for (const autor of autor_ids) {
           if (!(await validarAutorExiste(autor))) {
             mostrarMensaje(`El autor "${autor}" no existe en el sistema`, 'error');
@@ -648,6 +775,13 @@ async function guardarInsertar() {
 }
 
 // ==================== MODAL EDITAR ====================
+// ==================== MODAL EDITAR ====================
+/**
+ * Abre el modal para buscar y editar un registro
+ * El formulario de búsqueda cambia según la entidad
+ * Para Préstamos y Copias: múltiples campos
+ * Para otros: un solo campo de búsqueda
+ */
 function abrirModalEditar() {
   const modal = document.getElementById('modalEditar');
   const titulo = document.getElementById('modalEditarTitulo');
@@ -655,7 +789,7 @@ function abrirModalEditar() {
   
   titulo.textContent = `Editar ${currentEntity}`;
   
-  // Si es préstamo, mostrar formulario especial
+  // Si es préstamo, mostrar formulario especial con 4 campos (RUT, Número, ISBN, Fecha)
   if (currentEntity === 'prestamos') {
     buscarContainer.innerHTML = `
       <label>Buscar préstamo por:</label>
@@ -678,6 +812,7 @@ function abrirModalEditar() {
       <button class="btn btn-secondary" style="width: 100%; margin-top: 10px;" onclick="buscarParaEditar()">Buscar</button>
     `;
   } else if (currentEntity === 'copias') {
+    // Si es copia, mostrar formulario especial con 2 campos (Número e ISBN)
     buscarContainer.innerHTML = `
       <label>Buscar copia por:</label>
       <div class="form-group">
@@ -704,11 +839,16 @@ function abrirModalEditar() {
   modal.classList.remove('hidden');
 }
 
+/**
+ * Busca un registro en la base de datos para editar
+ * Puede buscar por clave simple (Autores, Libros, Ediciones, Usuarios)
+ * O por clave compuesta JSON (Préstamos, Copias)
+ */
 async function buscarParaEditar() {
   let busqueda;
   
   if (currentEntity === 'prestamos') {
-    // Búsqueda especial para préstamos
+    // Búsqueda especial para préstamos - Requiere 4 campos: RUT, Número, ISBN, Fecha
     const rut = document.getElementById('prestamoRutBusca').value.trim();
     const numero = document.getElementById('prestamoCopiaNumBusca').value.trim();
     const isbn = document.getElementById('prestamoCopiaEdBusca').value.trim();
@@ -770,6 +910,12 @@ async function buscarParaEditar() {
   }
 }
 
+/**
+ * Carga el formulario de edición con los valores actuales del registro encontrado
+ * Crea campos de entrada específicos para cada tipo de entidad
+ * Los valores se pre-rellenan con la información del registro actual
+ * @param {Object} item - El registro encontrado en la base de datos
+ */
 function mostrarFormularioEditar(item) {
   const container = document.getElementById('formEditarContainer');
   container.innerHTML = '';
@@ -1022,11 +1168,16 @@ function abrirModalEliminar() {
   modal.classList.remove('hidden');
 }
 
+/**
+ * Confirma y ejecuta la eliminación de un registro
+ * Valida que el registro existe y luego lo elimina junto con sus dependencias
+ * Maneja claves simples y compuestas (JSON)
+ */
 async function confirmarEliminar() {
   let clave;
   
   if (currentEntity === 'prestamos') {
-    // Búsqueda especial para préstamos
+    // Búsqueda especial para préstamos - Requiere 4 campos
     const rut = document.getElementById('prestamoRutElem').value.trim();
     const numero = document.getElementById('prestamoCopiaNumElem').value.trim();
     const isbn = document.getElementById('prestamoCopiaEdElem').value.trim();
@@ -1087,6 +1238,18 @@ async function confirmarEliminar() {
   }
 }
 
+/**
+ * Elimina un registro y todas sus dependencias en la base de datos
+ * Implementa cascada de eliminación:
+ * - Autor eliminado → Elimina libros que SOLO tengan ese autor
+ * - Libro eliminado → Elimina todas sus ediciones
+ * - Edición eliminada → Elimina todas sus copias y préstamos
+ * - Copia eliminada → Elimina todos sus préstamos  
+ * - Usuario eliminado → Elimina todos sus préstamos
+ * @param {string} entity - Tipo de entidad a eliminar
+ * @param {string} clave - Identificador de la entidad (puede ser JSON para claves compuestas)
+ * @returns {boolean} true si se eliminó correctamente, false si hay error
+ */
 // ==================== VALIDACIONES EN CASCADA ====================
 async function eliminarEnCascada(entity, clave) {
   try {
@@ -1198,27 +1361,41 @@ function cerrarTodosModales() {
   }
 }
 
+/**
+ * Muestra un mensaje emergente al usuario
+ * Es útil para notificaciones de éxito, error, o info
+ * @param {string} texto - El mensaje a mostrar
+ * @param {string} tipo - Tipo de mensaje: 'error', 'success', 'info' (default 'info')
+ */
 function mostrarMensaje(texto, tipo = 'info') {
   const modal = document.getElementById('modalMensaje');
   const titulo = document.getElementById('mensajeTitulo');
   const contenido = document.getElementById('mensajeTexto');
   
+  // Definir título y emoji según el tipo de mensaje
   let tituloTexto = 'Mensaje';
   if (tipo === 'error') tituloTexto = '⚠️ Error';
   else if (tipo === 'success') tituloTexto = '✅ Éxito';
   else if (tipo === 'info') tituloTexto = 'ℹ️ Información';
   
+  // Llenar el contenido del modal
   titulo.textContent = tituloTexto;
   contenido.textContent = texto;
   
+  // Mostrar el modal
   modal.classList.remove('hidden');
   
+  // Ocultar automáticamente después de 2 segundos
   setTimeout(() => {
     modal.classList.add('hidden');
   }, 2000);
 }
 
-// ==================== CONSULTAS ====================
+/**
+ * Carga y muestra la Consulta 1: Lista de copias disponibles con detalles
+ * Trae datos del endpoint /consultas/consulta1
+ * Muestra: Autor, Libro, ISBN, Año, Idioma, Número de Copia
+ */
 async function cargarConsulta1() {
   try {
     const response = await fetch(`${API_URL}/consultas/consulta1`);
@@ -1229,6 +1406,11 @@ async function cargarConsulta1() {
   }
 }
 
+/**
+ * Renderiza la tabla de Consulta 1
+ * Muestra cada copia disponible con información de su libro y edición
+ * @param {Array} data - Array de copias disponibles con detalles
+ */
 function mostrarTablaConsulta1(data) {
   const tbody = document.querySelector('#tablaConsulta1 tbody');
   tbody.innerHTML = '';
@@ -1247,6 +1429,11 @@ function mostrarTablaConsulta1(data) {
   });
 }
 
+/**
+ * Configura los event listeners para Consulta 2
+ * Permite buscar préstamos de un usuario por RUT
+ * Soporta búsqueda con clic o presionando Enter
+ */
 function setupConsulta2() {
   // Evento para el botón de búsqueda
   const btnBuscar = document.getElementById('btnBuscarUsuarioPrestamos');
@@ -1265,12 +1452,23 @@ function setupConsulta2() {
   }
 }
 
+/**
+ * Limpia todos los datos de Consulta 2
+ * Se ejecuta cuando el usuario navega a otra ventana
+ * Evita que datos de búsquedas anteriores se muestren
+ */
 function limpiarConsulta2() {
   document.getElementById('inputRutBusca').value = '';
   document.getElementById('infoPrestamosUsuario').classList.add('hidden');
   document.querySelector('#tablaConsulta2 tbody').innerHTML = '';
 }
 
+/**
+ * Busca todos los préstamos de un usuario específico
+ * 1. Verifica que el usuario existe
+ * 2. Busca sus préstamos
+ * 3. Muestra información del usuario y tabla de préstamos
+ */
 async function buscarPrestamosUsuario() {
   try {
     const rut = document.getElementById('inputRutBusca').value.trim();
@@ -1307,6 +1505,14 @@ async function buscarPrestamosUsuario() {
   }
 }
 
+/**
+ * Muestra la información del usuario y su tabla de préstamos
+ * Se ejecuta después de buscar un usuario en Consulta 2
+ * @param {string} titulo - Nombre del usuario o mensaje de error (ej: "👤 Juan Pérez (12345678)")
+ * @param {string} mensaje - Mensaje adicional (ej: "Tiene 3 libros prestados")
+ * @param {boolean} mostrarInfo - Si true, muestra la info del usuario; si false, la oculta
+ * @param {Array} prestamos - Array de préstamos del usuario o null
+ */
 function mostrarInfoPrestamos(titulo, mensaje, mostrarInfo, prestamos) {
   const infoDiv = document.getElementById('infoPrestamosUsuario');
   const nombreDiv = document.getElementById('nombreUsuarioPrestamos');
@@ -1314,17 +1520,22 @@ function mostrarInfoPrestamos(titulo, mensaje, mostrarInfo, prestamos) {
   
   nombreDiv.textContent = titulo;
   mensajeDiv.textContent = mensaje;
-  
+
   if (mostrarInfo) {
     infoDiv.classList.remove('hidden');
   } else {
     infoDiv.classList.add('hidden');
   }
-  
+
   // Mostrar o limpiar tabla según corresponda
   mostrarTablaConsulta2(prestamos || []);
 }
 
+/**
+ * Renderiza la tabla de Consulta 2 con los préstamos del usuario
+ * Muestra: RUT, Autor, Libro, ISBN, Número de Copia, Fecha Préstamo, Fecha Devolución
+ * @param {Array} data - Array de préstamos a mostrar
+ */
 function mostrarTablaConsulta2(data) {
   const tbody = document.querySelector('#tablaConsulta2 tbody');
   tbody.innerHTML = '';
