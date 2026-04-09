@@ -50,6 +50,40 @@ async function updateEdicion(req, res) {
     }
     
     const db = getDB();
+    
+    // Obtener los préstamos asociados al ISBN antiguo antes de eliminar
+    const prestamosAsociados = await db.collection('prestamo').find({
+      '_id.copia_id.edicion_id': isbnAntiguo
+    }).toArray();
+    
+    // Actualizar en la colección de copias (cascada)
+    const copias = await db.collection('copia').find({ '_id.edicion_id': isbnAntiguo }).toArray();
+    for (const copia of copias) {
+      await db.collection('copia').deleteOne({ _id: copia._id });
+      await db.collection('copia').insertOne({
+        _id: { numero: copia._id.numero, edicion_id: ISBN }
+      });
+    }
+    
+    // Actualizar en la colección de préstamos (cascada)
+    for (const prestamo of prestamosAsociados) {
+      // Eliminar préstamo antiguo
+      await db.collection('prestamo').deleteOne({ _id: prestamo._id });
+      // Crear préstamo nuevo con el nuevo ISBN
+      await db.collection('prestamo').insertOne({
+        _id: {
+          usuario_id: prestamo._id.usuario_id,
+          copia_id: {
+            numero: prestamo._id.copia_id.numero,
+            edicion_id: ISBN
+          },
+          fecha_prestamo: prestamo._id.fecha_prestamo
+        },
+        fecha_devolucion: prestamo.fecha_devolucion
+      });
+    }
+    
+    // Actualizar la edición
     await db.collection('edicion').deleteOne({ _id: isbnAntiguo });
     await db.collection('edicion').insertOne({
       _id: ISBN,

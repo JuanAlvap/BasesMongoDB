@@ -50,6 +50,12 @@ async function updateLibro(req, res) {
       autor_ids: autor_ids || []
     });
     
+    // Actualizar también en la colección de ediciones (cascada)
+    await db.collection('edicion').updateMany(
+      { libro_id: tituloAntiguo },
+      { $set: { libro_id: titulo } }
+    );
+    
     res.json({ message: 'Libro actualizado', _id: titulo, autor_ids });
   } catch (error) {
     res.status(500).json({ error: error.message });

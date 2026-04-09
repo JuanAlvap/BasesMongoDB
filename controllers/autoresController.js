@@ -48,6 +48,14 @@ async function updateAutor(req, res) {
     await db.collection('autor').deleteOne({ _id: nombreAntiguo });
     await db.collection('autor').insertOne({ _id: nombre });
     
+    // Actualizar también en la colección de libros (cascada)
+    // Usa arrayFilters para reemplazar el nombre antiguo por el nuevo en el arreglo autor_ids
+    await db.collection('libro').updateMany(
+      { autor_ids: nombreAntiguo },
+      { $set: { "autor_ids.$[elem]": nombre } },
+      { arrayFilters: [{ elem: nombreAntiguo }] }
+    );
+    
     res.json({ message: 'Autor actualizado', _id: nombre });
   } catch (error) {
     res.status(500).json({ error: error.message });

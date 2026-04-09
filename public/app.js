@@ -318,6 +318,16 @@ async function validarAutorExiste(nombre) {
   }
 }
 
+async function validarLibroExiste(titulo) {
+  try {
+    const response = await fetch(`${API_URL}/libros`);
+    const libros = await response.json();
+    return libros.some(l => l._id === titulo);
+  } catch {
+    return false;
+  }
+}
+
 async function validarCopiaPuedePrestar(copiaNumero, copiaEdicionId) {
   try {
     const response = await fetch(`${API_URL}/prestamos`);
@@ -652,12 +662,25 @@ async function guardarInsertar() {
         break;
         
       case 'ediciones':
-        const isbn = document.getElementById('insertEdicionISBN').value.trim();
-        const anio = parseInt(document.getElementById('insertEdicionAnio').value);
-        const idioma = document.getElementById('insertEdicionIdioma').value.trim();
-        const libro_id = document.getElementById('insertEdicionLibroId').value.trim();
+        const isbnElem = document.getElementById('insertEdicionISBN');
+        const anioElem = document.getElementById('insertEdicionAnio');
+        const idiomaElem = document.getElementById('insertEdicionIdioma');
+        const libroIdElem = document.getElementById('insertEdicionLibroId');
         
-        if (!isbn || !anio || !idioma || !libro_id) {
+        if (!isbnElem || !anioElem || !idiomaElem || !libroIdElem) {
+          console.error('Elementos del formulario no encontrados', { isbnElem, anioElem, idiomaElem, libroIdElem });
+          mostrarMensaje('Error: Formulario incompleto. Recarga la página.', 'error');
+          return;
+        }
+        
+        const isbn = isbnElem.value.trim();
+        const anio = parseInt(anioElem.value);
+        const idioma = idiomaElem.value.trim();
+        const libro_id = libroIdElem.value.trim();
+        
+        console.log('Edición data:', { isbn, anio, idioma, libro_id, isNaN_anio: isNaN(anio) });
+        
+        if (!isbn || isNaN(anio) || !idioma || !libro_id) {
           mostrarMensaje('Todos los campos son requeridos', 'error');
           return;
         }
@@ -667,15 +690,21 @@ async function guardarInsertar() {
           return;
         }
         
-        datos = { isbn, anio, idioma, libro_id };
+        // Validar que el libro exista
+        if (!(await validarLibroExiste(libro_id))) {
+          mostrarMensaje(`El libro "${libro_id}" no existe en el sistema`, 'error');
+          return;
+        }
+        
+        datos = { ISBN: isbn, anio, idioma, libro_id };
         break;
         
       case 'copias':
         const numero = parseInt(document.getElementById('insertCopiaNumeroo').value);
         const edicion_id = document.getElementById('insertCopiaEdicionId').value.trim();
         
-        if (!numero || !edicion_id) {
-          mostrarMensaje('Todos los campos son requeridos', 'error');
+        if (isNaN(numero) || numero <= 0 || !edicion_id) {
+          mostrarMensaje('El número de copia debe ser un número válido y el ISBN es requerido', 'error');
           return;
         }
         
@@ -684,7 +713,7 @@ async function guardarInsertar() {
           return;
         }
         
-        datos = { _id: { numero, edicion_id } };
+        datos = { numero, edicion_id };
         break;
         
       case 'usuarios':
@@ -995,19 +1024,19 @@ function mostrarFormularioEditar(item) {
       container.innerHTML = `
         <div class="form-group">
           <label>RUT Usuario:</label>
-          <input type="text" value="${item._id.usuario_id}">
+          <input type="text" id="editPrestamoRUT" value="${item._id.usuario_id}">
         </div>
         <div class="form-group">
           <label>Número Copia:</label>
-          <input type="number" value="${item._id.copia_id.numero}">
+          <input type="number" id="editPrestamoCopiaNum" value="${item._id.copia_id.numero}">
         </div>
         <div class="form-group">
           <label>ISBN:</label>
-          <input type="text" value="${item._id.copia_id.edicion_id}">
+          <input type="text" id="editPrestamoCopiaEd" value="${item._id.copia_id.edicion_id}">
         </div>
         <div class="form-group">
           <label>Fecha Préstamo:</label>
-          <input type="date" value="${item._id.fecha_prestamo}">
+          <input type="date" id="editPrestamoFecha" value="${item._id.fecha_prestamo}">
         </div>
         <div class="form-group">
           <label>Fecha Devolución:</label>
@@ -1027,6 +1056,7 @@ async function guardarEditar() {
     
     // Manejar la clave antigua dependiendo de la entidad
     if (currentEntity === 'prestamos') {
+      // Para prestamos, SIEMPRE usar los campos de búsqueda (que contienen el ID original)
       const rut = document.getElementById('prestamoRutBusca').value.trim();
       const numero = document.getElementById('prestamoCopiaNumBusca').value.trim();
       const isbn = document.getElementById('prestamoCopiaEdBusca').value.trim();
@@ -1038,6 +1068,15 @@ async function guardarEditar() {
         fecha_prestamo: fecha
       };
       claveAntigua = JSON.stringify(prestamoId);
+    } else if (currentEntity === 'copias') {
+      const numero = document.getElementById('copiasNumBusca').value.trim();
+      const isbn = document.getElementById('copiasIsbnBusca').value.trim();
+      
+      const copiaId = {
+        numero: parseInt(numero),
+        edicion_id: isbn
+      };
+      claveAntigua = JSON.stringify(copiaId);
     } else {
       claveAntigua = document.getElementById('inputBuscarEditar').value.trim();
     }
@@ -1046,59 +1085,159 @@ async function guardarEditar() {
     
     switch(currentEntity) {
       case 'autores':
-        const nuevoNombre = document.getElementById('editAutorNombre').value.trim();
-        if (!nuevoNombre) {
+        const nuevoNombreAutor = document.getElementById('editAutorNombre').value.trim();
+        if (!nuevoNombreAutor) {
           mostrarMensaje('El nombre es requerido', 'error');
           return;
         }
-        datos = { nombre: nuevoNombre };
+        datos = { nombre: nuevoNombreAutor };
         break;
         
       case 'libros':
-        const nuevoTitulo = document.getElementById('editLibroTitulo').value.trim();
-        const nuevosAutores = document.getElementById('editLibroAutores').value.trim();
-        if (!nuevoTitulo) {
-          mostrarMensaje('El título es requerido', 'error');
+        const nuevoTituloLibro = document.getElementById('editLibroTitulo').value.trim();
+        const nuevoListaAutores = document.getElementById('editLibroAutores').value.trim();
+        if (!nuevoListaAutores || !nuevoTituloLibro) {
+          mostrarMensaje('El título y los autores son requeridos', 'error');
           return;
         }
-        datos = {
-          titulo: nuevoTitulo,
-          autor_ids: nuevosAutores ? nuevosAutores.split(',').map(a => a.trim()) : []
-        };
+        // Convertir lista separada por comas en array, eliminando espacios
+        const arrayAutores = nuevoListaAutores.split(',').map(a => a.trim()).filter(a => a !== '');
+        
+        // Validar que todos los autores existan
+        try {
+          const respuestaAutores = await fetch(`${API_URL}/autores`);
+          const autoresExistentes = await respuestaAutores.json();
+          const nombresAutoresExistentes = autoresExistentes.map(a => a._id);
+          
+          const autoresNoExistentes = arrayAutores.filter(autor => !nombresAutoresExistentes.includes(autor));
+          if (autoresNoExistentes.length > 0) {
+            mostrarMensaje(`Los siguientes autores no existen: ${autoresNoExistentes.join(', ')}`, 'error');
+            return;
+          }
+        } catch (error) {
+          mostrarMensaje('Error al validar autores', 'error');
+          return;
+        }
+        
+        datos = { titulo: nuevoTituloLibro, autor_ids: arrayAutores };
         break;
         
       case 'ediciones':
+        const nuevoISBN = document.getElementById('editEdicionISBN').value.trim();
         const nuevoAnio = parseInt(document.getElementById('editEdicionAnio').value);
         const nuevoIdioma = document.getElementById('editEdicionIdioma').value.trim();
-        const nuevoLibro = document.getElementById('editEdicionLibroId').value.trim();
-        datos = { anio: nuevoAnio, idioma: nuevoIdioma, libro_id: nuevoLibro };
+        const nuevoLibroId = document.getElementById('editEdicionLibroId').value.trim();
+        
+        if (!nuevoISBN || isNaN(nuevoAnio) || !nuevoIdioma || !nuevoLibroId) {
+          mostrarMensaje('Todos los campos son requeridos', 'error');
+          return;
+        }
+        
+        // Validar que el libro exista
+        try {
+          const respuestaLibros = await fetch(`${API_URL}/libros`);
+          const librosExistentes = await respuestaLibros.json();
+          const nombresLibrosExistentes = librosExistentes.map(l => l._id);
+          
+          if (!nombresLibrosExistentes.includes(nuevoLibroId)) {
+            mostrarMensaje(`El libro "${nuevoLibroId}" no existe`, 'error');
+            return;
+          }
+        } catch (error) {
+          mostrarMensaje('Error al validar el libro', 'error');
+          return;
+        }
+        
+        datos = { ISBN: nuevoISBN, anio: nuevoAnio, idioma: nuevoIdioma, libro_id: nuevoLibroId };
+        break;
+        
+      case 'copias':
+        const nuevoCopiaNumero = parseInt(document.getElementById('editCopiaNumeroo').value);
+        const nuevoCopiaEdicionId = document.getElementById('editCopiaEdicionId').value.trim();
+        if (isNaN(nuevoCopiaNumero) || nuevoCopiaNumero <= 0 || !nuevoCopiaEdicionId) {
+          mostrarMensaje('El número de copia debe ser un número válido y el ISBN es requerido', 'error');
+          return;
+        }
+        
+        // Validar que la edición exista
+        try {
+          const respuestaEdiciones = await fetch(`${API_URL}/ediciones`);
+          const edicionesExistentes = await respuestaEdiciones.json();
+          const isbnsExistentes = edicionesExistentes.map(e => e._id);
+          
+          if (!isbnsExistentes.includes(nuevoCopiaEdicionId)) {
+            mostrarMensaje(`La edición con ISBN "${nuevoCopiaEdicionId}" no existe`, 'error');
+            return;
+          }
+        } catch (error) {
+          mostrarMensaje('Error al validar la edición', 'error');
+          return;
+        }
+        
+        datos = { numero: nuevoCopiaNumero, edicion_id: nuevoCopiaEdicionId };
         break;
         
       case 'usuarios':
+        const nuevoRUT = document.getElementById('editUsuarioRUT').value.trim();
         const nuevoNombreUsuario = document.getElementById('editUsuarioNombre').value.trim();
-        if (!nuevoNombreUsuario) {
-          mostrarMensaje('El nombre es requerido', 'error');
+        if (!nuevoRUT || !nuevoNombreUsuario) {
+          mostrarMensaje('El RUT y nombre son requeridos', 'error');
           return;
         }
-        datos = { nombre: nuevoNombreUsuario };
+        datos = { rut: nuevoRUT, nombre: nuevoNombreUsuario };
         break;
         
       case 'prestamos':
+        const nuevoPrestamoRUT = document.getElementById('editPrestamoRUT').value.trim();
+        const nuevoPrestamoCopiaNum = parseInt(document.getElementById('editPrestamoCopiaNum').value);
+        const nuevoPrestamoCopiaEd = document.getElementById('editPrestamoCopiaEd').value.trim();
+        const nuevoPrestamoFecha = document.getElementById('editPrestamoFecha').value;
         const nuevaFechaDevolucion = document.getElementById('editPrestamoFechaDevolucion').value;
-        if (nuevaFechaDevolucion && !validarFecha(nuevaFechaDevolucion)) {
-          mostrarMensaje('La fecha no es válida', 'error');
+        
+        if (!nuevoPrestamoRUT || isNaN(nuevoPrestamoCopiaNum) || !nuevoPrestamoCopiaEd || !nuevoPrestamoFecha) {
+          mostrarMensaje('Todos los campos del préstamo son requeridos', 'error');
           return;
         }
-        datos = { fecha_devolucion: nuevaFechaDevolucion || null };
+        
+        if (nuevaFechaDevolucion && !validarFecha(nuevaFechaDevolucion)) {
+          mostrarMensaje('La fecha de devolución no es válida', 'error');
+          return;
+        }
+        
+        // Validar que la fecha de devolución no sea anterior a la fecha de préstamo
+        if (nuevaFechaDevolucion && nuevoPrestamoFecha) {
+          if (nuevaFechaDevolucion < nuevoPrestamoFecha) {
+            mostrarMensaje('La fecha de devolución no puede ser anterior a la fecha de préstamo', 'error');
+            return;
+          }
+        }
+        
+        datos = { 
+          usuario_id: nuevoPrestamoRUT,
+          copia_id: { numero: nuevoPrestamoCopiaNum, edicion_id: nuevoPrestamoCopiaEd },
+          fecha_prestamo: nuevoPrestamoFecha,
+          fecha_devolucion: nuevaFechaDevolucion || null
+        };
         break;
     }
     
+    // Enviar actualización al servidor
     const url = `${API_URL}/${getUrlEntity(currentEntity)}/${encodeURIComponent(claveAntigua)}`;
+    
+    console.log('=== GUARDAR EDITAR ===');
+    console.log('Current Entity:', currentEntity);
+    console.log('Clave Antigua:', claveAntigua);
+    console.log('Datos a enviar:', datos);
+    console.log('URL:', url);
+    
     const response = await fetch(url, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(datos)
     });
+    
+    console.log('Response OK:', response.ok);
+    console.log('Response Status:', response.status);
     
     if (response.ok) {
       mostrarMensaje(`${currentEntity} actualizado correctamente`, 'success');
@@ -1106,7 +1245,7 @@ async function guardarEditar() {
       cargarDatos(currentEntity);
     } else {
       const error = await response.json();
-      mostrarMensaje(`Error: ${error.error}`, 'error');
+      mostrarMensaje(`Error: ${error.error || 'No se pudo actualizar'}`, 'error');
     }
   } catch (error) {
     mostrarMensaje(`Error: ${error.message}`, 'error');
@@ -1235,6 +1374,51 @@ async function confirmarEliminar() {
     }
   } catch (error) {
     mostrarMensaje(`Error: ${error.message}`, 'error');
+  }
+}
+
+/**
+ * Actualiza las referencias de un ID antiguo al nuevo ID en documentos relacionados
+ * Cuando un Autor cambia de nombre, actualiza todos sus libros
+ * Cuando un Libro cambia de título, actualiza todas sus ediciones
+ * @param {string} entity - Tipo de entidad ('autores' o 'libros')
+ * @param {string} idAntiguo - El ID anterior
+ * @param {string} idNuevo - El ID nuevo
+ */
+async function actualizarReferenciasEnCascada(entity, idAntiguo, idNuevo) {
+  try {
+    if (entity === 'autores') {
+      // Actualizar todos los libros que referencian este autor
+      const libros = await fetch(`${API_URL}/libros`).then(r => r.json());
+      for (const libro of libros) {
+        const autores = Array.isArray(libro.autor_ids) ? libro.autor_ids : [libro.autor_ids];
+        
+        if (autores.includes(idAntiguo)) {
+          const nuevosAutores = autores.map(a => a === idAntiguo ? idNuevo : a);
+          
+          await fetch(`${API_URL}/libros/${encodeURIComponent(libro._id)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ autor_ids: nuevosAutores })
+          });
+        }
+      }
+    } 
+    else if (entity === 'libros') {
+      // Actualizar todas las ediciones que referencian este libro
+      const ediciones = await fetch(`${API_URL}/ediciones`).then(r => r.json());
+      for (const edicion of ediciones) {
+        if (edicion.libro_id === idAntiguo) {
+          await fetch(`${API_URL}/ediciones/${encodeURIComponent(edicion._id)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ libro_id: idNuevo })
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error actualizando referencias:', error);
   }
 }
 
